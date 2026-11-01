@@ -78,6 +78,70 @@ for PATCH in "$ROOT"/patches/xnu/*.patch "$ROOT"/kits/NativePrelink/patches/*.pa
 done
 export XNU_AVAILABILITY_PL=$ROOT/.cache/fakeroot/usr/local/libexec/availability.pl
 python3 scripts/prepare-xnu-source.py
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+patch_def = '''#if defined(__cplusplus)
+extern "C" {
+#endif
+
+static inline IORPCMessage *
+IORPCMessageFromMach(IORPCMessageMach * msg, bool reply)
+{
+\tmach_msg_size_t              idx, count;
+\tmach_msg_port_descriptor_t * desc;
+\tmach_msg_port_descriptor_t * maxDesc;
+\tsize_t                       size, msgsize;
+
+\t(void)reply;
+\tif (!msg) {
+\t\treturn (IORPCMessage *)0;
+\t}
+\tmsgsize = msg->msgh.msgh_size;
+\tcount   = msg->msgh_body.msgh_descriptor_count;
+\tdesc    = &msg->objects[0];
+\tmaxDesc = (mach_msg_port_descriptor_t *)(((uintptr_t) msg) + msgsize);
+
+\tfor (idx = 0; idx < count; idx++) {
+\t\tif (desc >= maxDesc) {
+\t\t\treturn (IORPCMessage *)0;
+\t\t}
+\t\tswitch (desc->type) {
+\t\tcase MACH_MSG_PORT_DESCRIPTOR:
+\t\t\tsize = sizeof(mach_msg_port_descriptor_t);
+\t\t\tbreak;
+\t\tcase MACH_MSG_OOL_DESCRIPTOR:
+\t\t\tsize = sizeof(mach_msg_ool_descriptor_t);
+\t\t\tbreak;
+\t\tdefault:
+\t\t\treturn (IORPCMessage *)0;
+\t\t}
+\t\tdesc = (mach_msg_port_descriptor_t *)(((uintptr_t) desc) + size);
+\t}
+\treturn (IORPCMessage *)(uintptr_t) desc;
+}
+
+#if defined(__cplusplus)
+}
+#endif'''
+
+for rel in ['iokit/DriverKit/IORPC.h', 'iokit/IOKit/IORPC.h']:
+    p = Path('.cache/xnu-work') / rel
+    if p.is_file():
+        text = p.read_text(encoding='utf-8')
+        if 'static inline IORPCMessage *' not in text:
+            pattern = re.compile(r'#ifndef KERNEL\s*\n\s*#if defined\(__cplusplus\)\s*\n\s*extern "C"\s*\n\s*#else\s*\n\s*extern\s*\n\s*#endif\s*\n\s*IORPCMessage \*\s*\n\s*IORPCMessageFromMach\(IORPCMessageMach \* msg, bool reply\);\s*\n\s*#endif /\* KERNEL \*/')
+            if pattern.search(text):
+                text = pattern.sub(patch_def, text)
+                p.write_text(text, encoding='utf-8')
+                print(f'Patched {rel} with inline IORPCMessageFromMach')
+            else:
+                # Fallback append if pattern didn't match exactly
+                text = text.replace('#endif /* _IORPC_H */', f'\n{patch_def}\n#endif /* _IORPC_H */')
+                p.write_text(text, encoding='utf-8')
+                print(f'Appended inline IORPCMessageFromMach to {rel}')
+PY
 BOOT_PROGRESS=${XNU_BOOT_PROGRESS:-0}
 if [ "$BOOT_PROGRESS" != 0 ] && [ "$BOOT_PROGRESS" != 1 ]; then
   echo 'XNU_BOOT_PROGRESS must be 0 or 1' >&2

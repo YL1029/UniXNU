@@ -30,8 +30,6 @@ def restore(entry, destination=DESTINATION, tag=TAG):
         return None
     name = entry.get('relative', entry['name'])
     target = destination / name
-    if target.exists():
-        return None
 
     data = None
 
@@ -45,6 +43,12 @@ def restore(entry, destination=DESTINATION, tag=TAG):
         if cand.is_file():
             data = cand.read_bytes()
             break
+
+    if target.exists():
+        if data is not None and target.read_bytes() == data:
+            return None
+        elif data is None:
+            return None
 
     # 2. Check git_url via GitHub API (base64 blob)
     if data is None and entry.get('git_url'):

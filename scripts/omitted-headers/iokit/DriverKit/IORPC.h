@@ -190,17 +190,49 @@ struct IORPCMessage {
 #pragma pack(pop)
 typedef struct IORPCMessage IORPCMessage;
 
-#ifndef KERNEL
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+static inline IORPCMessage *
+IORPCMessageFromMach(IORPCMessageMach * msg, bool reply)
+{
+	mach_msg_size_t              idx, count;
+	mach_msg_port_descriptor_t * desc;
+	mach_msg_port_descriptor_t * maxDesc;
+	size_t                       size, msgsize;
+
+	(void)reply;
+	if (!msg) {
+		return (IORPCMessage *)0;
+	}
+	msgsize = msg->msgh.msgh_size;
+	count   = msg->msgh_body.msgh_descriptor_count;
+	desc    = &msg->objects[0];
+	maxDesc = (mach_msg_port_descriptor_t *)(((uintptr_t) msg) + msgsize);
+
+	for (idx = 0; idx < count; idx++) {
+		if (desc >= maxDesc) {
+			return (IORPCMessage *)0;
+		}
+		switch (desc->type) {
+		case MACH_MSG_PORT_DESCRIPTOR:
+			size = sizeof(mach_msg_port_descriptor_t);
+			break;
+		case MACH_MSG_OOL_DESCRIPTOR:
+			size = sizeof(mach_msg_ool_descriptor_t);
+			break;
+		default:
+			return (IORPCMessage *)0;
+		}
+	desc = (mach_msg_port_descriptor_t *)(((uintptr_t) desc) + size);
+	}
+	return (IORPCMessage *)(uintptr_t) desc;
+}
 
 #if defined(__cplusplus)
-extern "C"
-#else
-extern
+}
 #endif
-IORPCMessage *
-IORPCMessageFromMach(IORPCMessageMach * msg, bool reply);
-
-#endif /* KERNEL */
 
 struct IORPCMessageErrorReturnContent {
 	IORPCMessage  hdr;
