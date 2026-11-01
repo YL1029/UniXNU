@@ -1,0 +1,184 @@
+[
+  {
+    "name": "IOKernelReportStructs.h",
+    "relative": "iokit/DriverKit/IOKernelReportStructs.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "71c98a84650a7da3c66618d4306852d3df1c4d60",
+    "sha256": "8dd82930c349cde7023a05281ffb4d76823f20617bc5c45e7733a5688bc3d02d"
+  },
+  {
+    "name": "IOKitKeys.h",
+    "relative": "iokit/DriverKit/IOKitKeys.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "f4c43e837eab552e6e308896775dd3b96656fe29",
+    "sha256": "0b322a2b4d81de7346c121c66512828aa3e8a9d9c3a8bc910ab29f548020f958"
+  },
+  {
+    "name": "IORPC.h",
+    "relative": "iokit/DriverKit/IORPC.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "7ffc6b73e32ba98616e35c999945d367d2b8751d",
+    "sha256": "3463c83ffccead1f69c474d0d0ffcb5389cdcff923236d35600e31bcdbd229ce"
+  },
+  {
+    "name": "IOReportTypes.h",
+    "relative": "iokit/DriverKit/IOReportTypes.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "dd81759a416ba5cc3b5f6b79f843554765053c22",
+    "sha256": "d6b1a66d6e5933416e025efada06367fe15e642b9120eb0c24c13196a76e705f"
+  },
+  {
+    "name": "IOReturn.h",
+    "relative": "iokit/DriverKit/IOReturn.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "e36d37b374d1443c7721ade372a92ccc60d1d129",
+    "sha256": "4767dd8a847d4b7dcff0b74c7a67013f0462f3ea6313e5a483f49fe046f93ab1"
+  },
+  {
+    "name": "IOTypes.h",
+    "relative": "iokit/DriverKit/IOTypes.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "661b05e764addaf97bee13e5f935b85aac3855da",
+    "sha256": "f79e7bf7b97a1afbcb9023a2bc97d4ec3a969182f0dc36d4b9ccc841196266ad"
+  },
+  {
+    "name": "OSBoundedArray.h",
+    "relative": "iokit/DriverKit/OSBoundedArray.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "e413229b982880b91350e82520e4aaa6dfd18124",
+    "sha256": "69c9ba2a35afe782a6de410698ff23d70c11a466b6278fd201153a9c0470f157"
+  },
+  {
+    "name": "OSBoundedArrayRef.h",
+    "relative": "iokit/DriverKit/OSBoundedArrayRef.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "4467f6b6ff2ff3e50f495bcfce751adb82bd72a4",
+    "sha256": "d716a3328942cc179f58c92768e9358e9a90b5a31049a6f4a78ce1f96e0b4f62"
+  },
+  {
+    "name": "OSBoundedPtr.h",
+    "relative": "iokit/DriverKit/OSBoundedPtr.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "6ea9b1340603fbb5edf7072a276650aed2223f58",
+    "sha256": "9ac2ff2dd2700bde779b1eac359bc3ad252c1743b0b2a51bff8666c4601238df"
+  },
+  {
+    "name": "OSBoundedPtrFwd.h",
+    "relative": "iokit/DriverKit/OSBoundedPtrFwd.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "04c4df48c508f6c9c1a3f53fbb613130ede06b2f",
+    "sha256": "fa359f42f2ee59354d571fdf9901faaaff9ebd23a34a87386d1cfdd390c24db6"
+  },
+  {
+    "name": "bounded_array.h",
+    "relative": "iokit/DriverKit/bounded_array.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "57e102743d6f6039a27a6ff8310e9ce63d878d0e",
+    "sha256": "2941818ae1b1456aed888f6cf420aadd7da7aca3b3c3506f34913b113cc60292"
+  },
+  {
+    "name": "bounded_array_ref.h",
+    "relative": "iokit/DriverKit/bounded_array_ref.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "fe060a6d72a9f6930071a701caf162d9bf275fff",
+    "sha256": "4354d784f1ebbd393d83df839d21def8329a34a9641d12ad4763843510c8d4e9"
+  },
+  {
+    "name": "bounded_ptr.h",
+    "relative": "iokit/DriverKit/bounded_ptr.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "4c7de13f1a5bfe6d130413bde4c9c3de444a93ad",
+    "sha256": "29339515720513ba48414eae0869e80ae1d82bfec28d6b9692dc029d4e9f4255"
+  },
+  {
+    "name": "bounded_ptr_fwd.h",
+    "relative": "iokit/DriverKit/bounded_ptr_fwd.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "9613279e9841fef46f10398d4d5ac0d2c44a589a",
+    "sha256": "40c619ee9a64a23e6a7ba662c83348ab6d7b5cd1199a8a8271db43970491750f"
+  },
+  {
+    "name": "macro_help.h",
+    "relative": "iokit/DriverKit/macro_help.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "02fff0602846c259670822c9766424c106ea6a2b",
+    "sha256": "6bf35433d7fab3ea45dd0e19dd0998f59974bf87b2cf2b661be9d45ab3789d24"
+  },
+  {
+    "name": "queue_implementation.h",
+    "relative": "iokit/DriverKit/queue_implementation.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "1d14efdeb7370869d2360a100ff07125c3055119",
+    "sha256": "c7b422e473562a7ecf5345bd4f739f7cfbfbcf4c7906fe7d6092675f4c12a5fd"
+  },
+  {
+    "name": "safe_allocation.h",
+    "relative": "iokit/DriverKit/safe_allocation.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "1d4759b1ab36d76e7604adce3939ef5b6a56d12f",
+    "sha256": "24fd13492d10747f8b4f00a7cb5b8973fcf3e3aa780e8c4ce3bf3a4bbc897d7b"
+  },
+  {
+    "name": "aes.h",
+    "relative": "iokit/DriverKit/crypto/aes.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "9e962a873c50d4bb5d37fb8e333c77985bbe532e",
+    "sha256": "e217855801b7232726d8e877bd74d07b626b0007193c697d7d976ed949dd6049"
+  },
+  {
+    "name": "md5.h",
+    "relative": "iokit/DriverKit/crypto/md5.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "4ecd947d7a61464543059eb6265ec4cc548c84f6",
+    "sha256": "1f33a28ac6fb819ae949ac90d93652e1aa85d76cb149b7d264613d8eea981f1e"
+  },
+  {
+    "name": "sha1.h",
+    "relative": "iokit/DriverKit/crypto/sha1.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "706d10f88a499090bbd9fe2b03b4028a6069f7ca",
+    "sha256": "d84151b54492a1988c68d9a220bd8eccdbc9040bc0498521bfafe90facc8f3ac"
+  },
+  {
+    "name": "sha2.h",
+    "relative": "iokit/DriverKit/crypto/sha2.h",
+    "source_tag": "xnu-10063.121.3",
+    "git_blob": "2e93f35d7cc6766f0996014362a7b6c57fa14f19",
+    "sha256": "bf0d9f345cc763fe926d7b9394585df445df146d2f4bc1a844727c8033d2fb94"
+  },
+  {
+    "name": "API.h",
+    "relative": "EXTERNAL_HEADERS/TrustCache/API.h",
+    "source_tag": "xnu-8796.101.5",
+    "git_blob": "d13cddf36560638696223559c210797fa0442f5d",
+    "sha256": "a8e2994a5b6ec61e3aaab6516d82041f629322a76bb4ee1339a172aaea14417a"
+  },
+  {
+    "name": "RawTypes.h",
+    "relative": "EXTERNAL_HEADERS/TrustCache/RawTypes.h",
+    "source_tag": "xnu-8796.101.5",
+    "git_blob": "16b684e219975b21f954813cad13bc243d2f6fe0",
+    "sha256": "03e945ba48a3b3400012d42fc1b97fb70bc59835985c2921e8173369e40301bf"
+  },
+  {
+    "name": "Return.h",
+    "relative": "EXTERNAL_HEADERS/TrustCache/Return.h",
+    "source_tag": "xnu-8796.101.5",
+    "git_blob": "440a53c4f85a025155a9ac408b4f31acf04089d8",
+    "sha256": "d15cae97bb0c7cfa690b6ffa71805c7aa0c774e7c0bd23095d6684f564674b44"
+  },
+  {
+    "name": "Types.h",
+    "relative": "EXTERNAL_HEADERS/TrustCache/Types.h",
+    "source_tag": "xnu-8796.101.5",
+    "git_blob": "f3412f3869c69d1d2e40a0f8883aa9e3f5b3c7ae",
+    "sha256": "68f179189fb0f5e37f6898c8a0daa80e44b4a05c5a7834e4ae68e05f1ef99c4a"
+  },
+  {
+    "name": "TypesConfig.h",
+    "relative": "EXTERNAL_HEADERS/TrustCache/TypesConfig.h",
+    "source_tag": "xnu-8796.101.5",
+    "git_blob": "d93e8b09336ea508a968c563f2b2483e074e3cd4",
+    "sha256": "bb46daeff6efe7a7bc701741cbc73690b3ee5036aeac7096cbf269b751f0d1d3"
+  }
+]

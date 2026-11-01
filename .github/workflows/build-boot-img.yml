@@ -1,0 +1,56 @@
+name: Build DroidVM boot.img (Xiaomi 15)
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    name: Build boot.img on macOS Apple Silicon
+    runs-on: macos-14
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Xcode Toolchain
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          echo "Xcode Developer Dir: $(xcode-select -p)"
+          xcrun -find migcom
+          xcrun -find iig
+
+      - name: Install Build Dependencies (Homebrew)
+        run: |
+          brew install llvm lld cmake ninja unifdef mtools dtc
+          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Run DroidVM Boot Image Build
+        run: |
+          chmod +x build_droidvm_boot.sh
+          ./build_droidvm_boot.sh
+
+      - name: Upload boot.img (Release Artifact)
+        if: always() && hashFiles('boot.img') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-img-xiaomi15
+          path: boot.img
+          retention-days: 14
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: out/*/logs/
+          if-no-files-found: ignore
+          retention-days: 7
