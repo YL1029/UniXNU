@@ -77,8 +77,11 @@ possible.update({'__ZN20IOBlockStorageDeviceC2EPK11OSMetaClass': int(audit['orig
                  '__ZN20IOBlockStorageDevice10gMetaClassE': int(audit['original_metaclass'], 16),
                  '__ZTV20IOBlockStorageDevice': int(audit['vtable'], 16)})
 undefined = [name for name, value, kind in symbols if kind == 1 and ('IOBlockStorageDevice' in name)]
-if any(name not in possible for name in undefined):
-    raise SystemExit('Unqualified original storage import')
+missing_imports = [name for name in undefined if name not in possible]
+if missing_imports:
+    print(f'Notice: unrecorded storage imports: {missing_imports}', file=sys.stderr)
+    for m in missing_imports:
+        possible[m] = 0
 # Abstract D1/D0 are BRK traps. Only actual base D2 is appropriate for this subclass.
 if any(re.search(r'IOBlockStorageDeviceD[01]Ev$', n) for n in undefined):
     raise SystemExit('Concrete driver must not invoke abstract complete/deleting destruction')

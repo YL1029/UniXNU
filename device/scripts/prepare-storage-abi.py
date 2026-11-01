@@ -36,8 +36,26 @@ if revision != 'e45fbe30a7879e0b16e26dddb78538f1b00e0bff':
     raise SystemExit('Unexpected public Darwin 23 IOStorageFamily source')
 for path in source.glob('*.h'):
     shutil.copyfile(path, headers / path.name)
-sdk = Path(subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], text=True).strip())
-shutil.copyfile(sdk / 'usr/include/TargetConditionals.h', out / 'include/TargetConditionals.h')
+try:
+    sdk = Path(subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-path'], text=True).strip())
+    shutil.copyfile(sdk / 'usr/include/TargetConditionals.h', out / 'include/TargetConditionals.h')
+except Exception:
+    sdk = Path(subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], text=True).strip())
+    shutil.copyfile(sdk / 'usr/include/TargetConditionals.h', out / 'include/TargetConditionals.h')
+tc_file = out / 'include/TargetConditionals.h'
+tc_text = tc_file.read_text(encoding='utf-8', errors='ignore')
+tc_file.write_text(f'''#pragma once
+#ifndef TARGET_OS_OSX
+#define TARGET_OS_OSX 0
+#endif
+#undef TARGET_OS_OSX
+#define TARGET_OS_OSX 0
+#define TARGET_OS_IPHONE 1
+#define TARGET_OS_IOS 1
+{tc_text}
+#undef TARGET_OS_OSX
+#define TARGET_OS_OSX 0
+''')
 audit = json.loads(recorded.read_text())
 if audit['method_slots'] != 190 or audit['public_source_revision'] != revision:
     raise SystemExit('The recorded storage audit does not match this source')
