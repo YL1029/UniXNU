@@ -52,7 +52,12 @@ if [ ! -x "$EDK2/BaseTools/Source/C/bin/GenFw" ]; then
 fi
 
 export WORKSPACE=$BUILD_DIR
-export PACKAGES_PATH=$ROOT:$EDK2
+DARWINBOOT_DIR=$(cd "$ROOT/../drivers/DarwinBoot" 2>/dev/null && pwd || true)
+if [ -d "$DARWINBOOT_DIR/DarwinBootPkg" ]; then
+  export PACKAGES_PATH=$ROOT:$EDK2:$DARWINBOOT_DIR
+else
+  export PACKAGES_PATH=$ROOT:$EDK2
+fi
 export EDK_TOOLS_PATH=$EDK2/BaseTools
 export CONF_PATH=$BUILD_DIR/Build/Conf
 export PYTHON_COMMAND=${PYTHON_COMMAND:-python3}
@@ -89,8 +94,25 @@ OUT=$BUILD_DIR/Build/Out/$ARCH-$TARGET
 mkdir -p "$OUT"
 BIN=$BUILD_DIR/Build/UniXNU/${TARGET}_$TOOLCHAIN/$ARCH
 for m in UniXNU UniXNUDxe HelloPayload SampleDriver XnuTest; do
-  cp "$BIN/$m.efi" "$OUT/"
+  if [ -f "$BIN/$m.efi" ]; then
+    cp "$BIN/$m.efi" "$OUT/"
+  fi
 done
+
+if [ -d "$DARWINBOOT_DIR/DarwinBootPkg" ]; then
+  echo "== build DarwinBoot $ARCH $TARGET $TOOLCHAIN"
+  build -p DarwinBootPkg/DarwinBoot.dsc -a "$ARCH" -b "$TARGET" -t "$TOOLCHAIN" -n "$JOBS"
+  for cand in \
+    "$BUILD_DIR/build/DarwinBoot/${TARGET}_$TOOLCHAIN/$ARCH/DarwinBoot.efi" \
+    "$BUILD_DIR/Build/DarwinBoot/${TARGET}_$TOOLCHAIN/$ARCH/DarwinBoot.efi" \
+    "$BUILD_DIR/DarwinBoot/${TARGET}_$TOOLCHAIN/$ARCH/DarwinBoot.efi"; do
+    if [ -f "$cand" ]; then
+      cp "$cand" "$OUT/"
+      echo "== staged DarwinBoot.efi to $OUT/"
+      break
+    fi
+  done
+fi
 
 echo "== outputs in $OUT"
 ls -l "$OUT"

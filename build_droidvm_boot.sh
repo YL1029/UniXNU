@@ -136,27 +136,46 @@ if [ ! -f "$KERNEL_MACHO" ]; then
     exit 1
 fi
 
+if [ -z "$UNIXNU_EFI" ] || [ ! -f "$UNIXNU_EFI" ]; then
+    echo "❌ 错误: 未找到 UniXNU.efi，构建中止！"
+    exit 1
+fi
+
+if [ -z "$DARWINBOOT_EFI" ] || [ ! -f "$DARWINBOOT_EFI" ]; then
+    echo "❌ 错误: 未找到 DarwinBoot.efi，构建中止！"
+    exit 1
+fi
+
+echo "✔ 发现 UniXNU.efi: $UNIXNU_EFI"
+echo "✔ 发现 DarwinBoot.efi: $DARWINBOOT_EFI"
+echo "✔ 发现 kernel.macho: $KERNEL_MACHO"
+
 STAGE_DIR="$ROOT/out/esp_stage"
 rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR/EFI/BOOT"
 mkdir -p "$STAGE_DIR/EFI/UniXNU/Payloads"
 
-# 复制 EFI 核心
-if [ -n "$UNIXNU_EFI" ] && [ -f "$UNIXNU_EFI" ]; then
-    cp "$UNIXNU_EFI" "$STAGE_DIR/EFI/BOOT/BOOTAA64.EFI"
-fi
-
-if [ -n "$DARWINBOOT_EFI" ] && [ -f "$DARWINBOOT_EFI" ]; then
-    cp "$DARWINBOOT_EFI" "$STAGE_DIR/EFI/UniXNU/Payloads/DarwinBoot.efi"
-fi
+# 复制 EFI 核心与驱动
+cp "$UNIXNU_EFI" "$STAGE_DIR/EFI/BOOT/BOOTAA64.EFI"
+cp "$DARWINBOOT_EFI" "$STAGE_DIR/EFI/UniXNU/Payloads/DarwinBoot.efi"
 
 # 复制内核
 cp "$KERNEL_MACHO" "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho"
 
-# 复制信任证书 (若有)
-if [ -f "$ROOT/ipsw_components/090-91706-091.dmg.trustcache" ]; then
-    cp "$ROOT/ipsw_components/090-91706-091.dmg.trustcache" "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.trustcache"
+# 生成设备树 kernel.macho.adt (DarwinBoot 加载 XNU 所必需)
+echo "==> 正在生成 DroidVM 设备树 (kernel.macho.adt)..."
+python3 "$ROOT/device/scripts/make-virt-adt.py" \
+    --machine crosvm \
+    --timebase 19200000 \
+    --ipad-identity \
+    --smp 1 \
+    --output "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt"
+
+if [ ! -f "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt" ]; then
+    echo "❌ 错误: 未能生成 kernel.macho.adt！"
+    exit 1
 fi
+echo "✔ 成功生成 kernel.macho.adt"
 
 # 生成启动配置 unixnu.toml
 cat << 'EOF' > "$STAGE_DIR/EFI/UniXNU/unixnu.toml"
