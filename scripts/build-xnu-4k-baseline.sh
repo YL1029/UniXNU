@@ -76,6 +76,7 @@ for PATCH in "$ROOT"/patches/xnu/*.patch "$ROOT"/kits/NativePrelink/patches/*.pa
     git -C .cache/xnu-work apply --ignore-space-change "$PATCH"
   fi
 done
+sed -i '' -e 's/-mach_msg2//g' .cache/xnu-work/makedefs/MakeInc.def 2>/dev/null || sed -i -e 's/-mach_msg2//g' .cache/xnu-work/makedefs/MakeInc.def 2>/dev/null || true
 export XNU_AVAILABILITY_PL=$ROOT/.cache/fakeroot/usr/local/libexec/availability.pl
 python3 scripts/prepare-xnu-source.py
 python3 - <<'PY'

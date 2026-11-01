@@ -1,0 +1,15 @@
+diff --git a/makedefs/MakeInc.def b/makedefs/MakeInc.def
+index 0000000..1111111 100644
+--- a/makedefs/MakeInc.def
++++ b/makedefs/MakeInc.def
+@@ -927,8 +927,7 @@ MIGFLAGS	= $(DEFINES) $(INCFLAGS) -novouchers $($(addsuffix $(CURRENT_ARCH_CON
+ # Default MIG Kernel Server flags
+ #
+ MIGKSFLAGS = \
+ 	-DMACH_KERNEL_PRIVATE \
+-	-DKERNEL_SERVER=1 \
+-	-mach_msg2
++	-DKERNEL_SERVER=1
+ 
+ #
+ # Default MIG KernelUser flags
