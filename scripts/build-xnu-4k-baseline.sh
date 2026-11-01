@@ -328,7 +328,7 @@ if [ -d "$MOCKFS_OBJECT_DIR" ]; then
   printf '%s\n' "$CS_HASH_CACHE_MODE" > "$MOCKFS_OBJECT_DIR/.native-cs-hash-cache-mode"
 fi
 EXTRA_MAKE_ARGS+=("ubc_subr.o_CFLAGS_ADD=-DXNU_NATIVE_CS_HASH_CACHE=$CS_HASH_CACHE_MODE")
-EXTRA_CFLAGS=${XNU_EXTRA_CFLAGS:--Wno-reserved-identifier -Wno-pre-c11-compat -Wno-missing-designated-field-initializers -Wno-suggest-override -Wno-unnecessary-virtual-specifier -Wno-suggest-destructor-override -Wno-ms-bitfield-padding}
+EXTRA_CFLAGS=${XNU_EXTRA_CFLAGS:--Wno-reserved-identifier -Wno-pre-c11-compat -Wno-missing-designated-field-initializers -Wno-suggest-override -Wno-unknown-warning-option -Wno-suggest-destructor-override -Wno-ms-bitfield-padding}
 OWNER_ROOT_PROBE=${XNU_VERIFIED_ROOT_PROBE:-0}
 if [ "$OWNER_ROOT_PROBE" != 0 ] && [ "$OWNER_ROOT_PROBE" != 1 ]; then
   echo 'XNU_VERIFIED_ROOT_PROBE must be 0 or 1' >&2
@@ -845,6 +845,20 @@ PY_BINDINGS
   if [ "$BOOT_PROGRESS" = 1 ]; then
     KERNEL_EXTRA_ARCHIVES="$KERNEL_EXTRA_ARCHIVES -Wl,-force_load,$ROOT/build/boot-progress/libBootProgress.a"
     KERNEL_ARCHIVE_DEPENDENCIES="$KERNEL_ARCHIVE_DEPENDENCIES $ROOT/build/boot-progress/libBootProgress.a"
+  fi
+  if [ -n "${XNU_EXTRA_LD_ARCHIVES:-}" ]; then
+    for item in ${XNU_EXTRA_LD_ARCHIVES}; do
+      case "$item" in
+        -Wl,-force_load,*)
+          need_input "${item#-Wl,-force_load,}"
+          KERNEL_ARCHIVE_DEPENDENCIES="$KERNEL_ARCHIVE_DEPENDENCIES ${item#-Wl,-force_load,}"
+          ;;
+        *.a|*.o)
+          need_input "$item"
+          KERNEL_ARCHIVE_DEPENDENCIES="$KERNEL_ARCHIVE_DEPENDENCIES $item"
+          ;;
+      esac
+    done
   fi
   KERNEL_EXTRA_ARCHIVES="$KERNEL_EXTRA_ARCHIVES ${XNU_EXTRA_LD_ARCHIVES:-}"
   EXTRA_MAKE_ARGS+=("LD_KERNEL_ARCHIVES=$KERNEL_EXTRA_ARCHIVES")

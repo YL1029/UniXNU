@@ -56,7 +56,7 @@ while i < len(args):
     i += 1
     if v in ('-MF', '-MJ'):
         i += 1
-cmd += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unnecessary-virtual-specifier', '-Wno-c99-designator',
+cmd += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unknown-warning-option', '-Wno-c99-designator',
         '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion', '-Wno-overloaded-virtual',
         '-I', str(ROOT / '.cache/xnu-work/osfmk')]
 subprocess.run(cmd, cwd=record['directory'], check=True)

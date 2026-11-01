@@ -77,7 +77,7 @@ if all(path.is_file() for path in recorded):
         elif not value.startswith('-W'):
             command.append(value)
         i += 1
-    command += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unnecessary-virtual-specifier', '-Wno-c99-designator',
+    command += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unknown-warning-option', '-Wno-c99-designator',
                 '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion', '-I', str(ROOT / '.cache/xnu-work/osfmk')]
     (OUT / 'probe-compile-command.json').write_text(json.dumps(command, indent=2) + '\n')
     result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
