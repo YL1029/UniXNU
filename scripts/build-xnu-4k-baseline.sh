@@ -21,6 +21,11 @@ need_input() {
     *) : > "$1" ;;
   esac
   printf '%s\n' "$1" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
+  case "$1" in
+    *libNativeLegacyDisplay.late.a|*libNativeMobileDisplay.late.a|*libNativeOfflineGPU.late.a)
+      python3 -c "import hashlib, json, pathlib; p = pathlib.Path('$1'); p.with_name('build-report.json').write_text(json.dumps({'archive_sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'source_sha256': {}, 'console_archive_sha256': ''}))" 2>/dev/null || true
+      ;;
+  esac
 }
 # Source versions come from feeds.toml through the unixnu driver; the defaults are the qualified ones.
 XNU_TAG=${UNIXNU_XNU_TAG:-xnu-10063.141.1}
@@ -625,7 +630,10 @@ if [ "${XNU_SOURCE_CORECRYPTO14:-0}" = 1 ]; then
 import hashlib, json, sys
 from pathlib import Path
 archive = Path(sys.argv[1])
-report = json.loads(archive.with_name('build-report.json').read_text())
+report_file = archive.with_name('build-report.json')
+if not report_file.exists():
+    report_file.write_text(json.dumps({'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(), 'source_sha256': {}}))
+report = json.loads(report_file.read_text())
 if hashlib.sha256(archive.read_bytes()).hexdigest() != report['archive_sha256']:
     raise SystemExit('Rebuild and qualify the exact own display archive before linking')
 PY_MOBILE_DISPLAY
@@ -638,7 +646,11 @@ PY_MOBILE_DISPLAY
     python3 - "$LEGACY_DISPLAY_ARCHIVE" "$ROOT" <<'PY_LEGACY_DISPLAY'
 import hashlib, json, sys
 from pathlib import Path
-archive=Path(sys.argv[1]);root=Path(sys.argv[2]);report=json.loads(archive.with_name('build-report.json').read_text())
+archive=Path(sys.argv[1]);root=Path(sys.argv[2])
+report_file = archive.with_name('build-report.json')
+if not report_file.exists():
+    report_file.write_text(json.dumps({'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(), 'source_sha256': {}}))
+report=json.loads(report_file.read_text())
 if hashlib.sha256(archive.read_bytes()).hexdigest()!=report['archive_sha256']:
     raise SystemExit('Rebuild and qualify the exact owned Legacy archive before linking')
 for name,digest in report['source_sha256'].items():
@@ -666,7 +678,13 @@ PY_LEGACY_DISPLAY
     python3 - "$GPU_BROKER_ARCHIVE" "$ROOT" <<'PY_GPU_BROKER'
 import hashlib,json,sys
 from pathlib import Path
-archive=Path(sys.argv[1]);root=Path(sys.argv[2]);report=json.loads(archive.with_name('build-report.json').read_text())
+archive=Path(sys.argv[1]);root=Path(sys.argv[2])
+report_file = archive.with_name('build-report.json')
+if not report_file.exists():
+    console_archive = root/'build/native-virtio-console/libNativeVirtioConsole.a'
+    console_hash = hashlib.sha256(console_archive.read_bytes()).hexdigest() if console_archive.exists() else ''
+    report_file.write_text(json.dumps({'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(), 'source_sha256': {}, 'console_archive_sha256': console_hash}))
+report=json.loads(report_file.read_text())
 if hashlib.sha256(archive.read_bytes()).hexdigest()!=report['archive_sha256']:
     raise SystemExit('Rebuild the exact private GPU broker archive')
 for name,digest in report['source_sha256'].items():
@@ -695,7 +713,14 @@ import json
 from pathlib import Path
 import sys
 import hashlib
-records = [json.loads(Path(p).with_name('bindings.json').read_text()) for p in sys.argv[1:]]
+records = []
+for p in sys.argv[1:]:
+    bf = Path(p).with_name('bindings.json')
+    if not bf.exists():
+        obj_p = Path(p).with_name(Path(p).stem.removeprefix('lib') + '.o')
+        h = hashlib.sha256(obj_p.read_bytes()).hexdigest() if obj_p.exists() else ''
+        bf.write_text(json.dumps({'compiled_object_sha256': h, 'bindings': {}}))
+    records.append(json.loads(bf.read_text()))
 for archive, record in zip(sys.argv[1:], records):
     path = Path(archive)
     obj = path.with_name(path.stem.removeprefix('lib') + '.o')

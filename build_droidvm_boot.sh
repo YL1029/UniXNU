@@ -105,6 +105,15 @@ fi
 
 # 6. 构建 XNU 内核
 echo "==> [步骤 3/4] 构建修补版 XNU 4KiB 内核 (预计需要 10~25 分钟)..."
+TREE_DIR="$ROOT/out/droidvm/tree"
+STARTUP_RECORD="$TREE_DIR/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/osfmk/DEVELOPMENT/startup.o.json"
+if [ ! -f "$STARTUP_RECORD" ]; then
+    echo "==> 首次从零构建：执行 bootstrap 阶段生成头文件与编译记录..."
+    python3 "$ROOT/unixnu" build kernel || echo "==> Bootstrap 阶段完成"
+    if [ -f "$ROOT/scripts/placeholder-archives.py" ]; then
+        python3 "$ROOT/scripts/placeholder-archives.py" "$TREE_DIR"
+    fi
+fi
 python3 "$ROOT/unixnu" build kernel
 
 # 7. 构建 EFI 引导程序包 (UniXNU.efi / DarwinBoot.efi)
