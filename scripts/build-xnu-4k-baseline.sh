@@ -17,10 +17,10 @@ need_input() {
   mkdir -p "$(dirname "$1")" "$ROOT/build/xnu"
   case "$1" in
     *.a)
-      printf '!<arch>\n' > "$1"
       obj="$(dirname "$1")/$(basename "$1" .a | sed 's/^lib//').o"
-      [ -f "$obj" ] || : > "$obj"
-      printf '%s\n' "$1" "$obj" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
+      xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -x c -c /dev/null -o "$obj" 2>/dev/null || : > "$obj"
+      xcrun --sdk iphoneos libtool -static -o "$1" "$obj" 2>/dev/null || ar -rcs "$1" "$obj" 2>/dev/null || printf '!<arch>\n' > "$1"
+      printf '%s\n%s\n' "$1" "$obj" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
       ;;
     *.o)
       xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -x c -c /dev/null -o "$1"

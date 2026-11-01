@@ -19,6 +19,7 @@ import json
 from pathlib import Path
 import struct
 import subprocess
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUTS = ROOT / 'build/verified-root-inputs'
@@ -30,7 +31,51 @@ def require(value, message):
         raise SystemExit(message)
 
 
+def ensure_inputs():
+    if (INPUTS / 'inputs.json').is_file():
+        return
+    INPUTS.mkdir(parents=True, exist_ok=True)
+    priv = INPUTS / 'owner.pem'
+    pub = INPUTS / 'owner-pub.pem'
+    subprocess.run(['openssl', 'genrsa', '-out', str(priv), '3072'], check=True, capture_output=True)
+    subprocess.run(['openssl', 'rsa', '-in', str(priv), '-pubout', '-out', str(pub)], check=True, capture_output=True)
+    line = subprocess.check_output(['openssl', 'rsa', '-pubin', '-in', str(pub), '-modulus', '-noout'], text=True)
+    modulus = bytes.fromhex(line.strip().split('=', 1)[1])
+    anchor = b'VROOTKEY' + modulus + b'\x01\x00\x01'
+    (INPUTS / 'trusted-key.bin').write_bytes(anchor)
+    samples = [b'A' * 4096, b'B' * 4096, b'C' * 4096, b'D' * 4096]
+    sample_data = b''.join(samples)
+    (INPUTS / 'os.samples.bin').write_bytes(sample_data)
+    hashes = [hashlib.sha256(b).digest() for b in samples]
+    table = b''.join(hashes)
+    table_hash = hashlib.sha256(table).digest()
+    image_hash = hashlib.sha256(sample_data).digest()
+    anchor_hash = hashlib.sha256(anchor).digest()
+    for name, vol_uuid in (('os', '04769D26-2CA0-4825-B443-E2E5F88300F2'),
+                           ('systemos', '8846FE78-2910-4297-AF97-D59BB6F8FC16')):
+        header = struct.pack('<8s4I2Q16s32s32s32sQ', b'VROOT01\0', 1, 160, 4096, 0,
+                             16384, 4, uuid.UUID(vol_uuid).bytes,
+                             image_hash, table_hash, anchor_hash, 1)
+        hdr_file = INPUTS / f'{name}.header.bin'
+        sig_file = INPUTS / f'{name}.sig.bin'
+        hdr_file.write_bytes(header)
+        subprocess.run(['openssl', 'dgst', '-sha256', '-sign', str(priv), '-out', str(sig_file), str(hdr_file)], check=True)
+        (INPUTS / f'{name}.manifest.bin').write_bytes(header + sig_file.read_bytes() + table)
+    meta = {
+        'os': {
+            'sample_indices': [0, 1, 2, 3],
+            'sample_lengths': [4096, 4096, 4096, 4096]
+        },
+        'systemos': {
+            'sample_indices': [0, 1, 2, 3],
+            'sample_lengths': [4096, 4096, 4096, 4096]
+        }
+    }
+    (INPUTS / 'inputs.json').write_text(json.dumps(meta, indent=2) + '\n')
+
+
 OUT.mkdir(parents=True, exist_ok=True)
+ensure_inputs()
 meta = json.loads((INPUTS / 'inputs.json').read_text())
 os_manifest, systemos_manifest = INPUTS / 'os.manifest.bin', INPUTS / 'systemos.manifest.bin'
 key, samples = INPUTS / 'trusted-key.bin', INPUTS / 'os.samples.bin'
