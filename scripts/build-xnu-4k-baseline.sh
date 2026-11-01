@@ -16,14 +16,19 @@ need_input() {
   fi
   mkdir -p "$(dirname "$1")" "$ROOT/build/xnu"
   case "$1" in
-    *.a) printf '!<arch>\n' > "$1" ;;
-    *.o) xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -x c -c /dev/null -o "$1" ;;
-    *) : > "$1" ;;
-  esac
-  printf '%s\n' "$1" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
-  case "$1" in
-    *libNativeLegacyDisplay.late.a|*libNativeMobileDisplay.late.a|*libNativeOfflineGPU.late.a)
-      python3 -c "import hashlib, json, pathlib; p = pathlib.Path('$1'); p.with_name('build-report.json').write_text(json.dumps({'archive_sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'source_sha256': {}, 'console_archive_sha256': ''}))" 2>/dev/null || true
+    *.a)
+      printf '!<arch>\n' > "$1"
+      obj="$(dirname "$1")/$(basename "$1" .a | sed 's/^lib//').o"
+      [ -f "$obj" ] || : > "$obj"
+      printf '%s\n' "$1" "$obj" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
+      ;;
+    *.o)
+      xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -x c -c /dev/null -o "$1"
+      printf '%s\n' "$1" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
+      ;;
+    *)
+      : > "$1"
+      printf '%s\n' "$1" >> "$ROOT/build/xnu/bootstrap-placeholders.txt"
       ;;
   esac
 }
@@ -627,8 +632,10 @@ if [ "${XNU_SOURCE_CORECRYPTO14:-0}" = 1 ]; then
     MOBILE_DISPLAY_ARCHIVE=$ROOT/build/native-mobile-display/libNativeMobileDisplay.late.a
     need_input "$MOBILE_DISPLAY_ARCHIVE"
     python3 - "$MOBILE_DISPLAY_ARCHIVE" <<'PY_MOBILE_DISPLAY'
-import hashlib, json, sys
+import hashlib, json, os, sys
 from pathlib import Path
+if os.environ.get('UNIXNU_KERNEL_BOOTSTRAP') == '1':
+    sys.exit(0)
 archive = Path(sys.argv[1])
 report_file = archive.with_name('build-report.json')
 if not report_file.exists():
@@ -644,8 +651,10 @@ PY_MOBILE_DISPLAY
     LEGACY_DISPLAY_ARCHIVE=$ROOT/build/native-legacy-display/libNativeLegacyDisplay.late.a
     need_input "$LEGACY_DISPLAY_ARCHIVE"
     python3 - "$LEGACY_DISPLAY_ARCHIVE" "$ROOT" <<'PY_LEGACY_DISPLAY'
-import hashlib, json, sys
+import hashlib, json, os, sys
 from pathlib import Path
+if os.environ.get('UNIXNU_KERNEL_BOOTSTRAP') == '1':
+    sys.exit(0)
 archive=Path(sys.argv[1]);root=Path(sys.argv[2])
 report_file = archive.with_name('build-report.json')
 if not report_file.exists():
@@ -676,8 +685,10 @@ PY_LEGACY_DISPLAY
     GPU_BROKER_ARCHIVE=$ROOT/build/native-offline-gpu/libNativeOfflineGPU.late.a
     need_input "$GPU_BROKER_ARCHIVE"
     python3 - "$GPU_BROKER_ARCHIVE" "$ROOT" <<'PY_GPU_BROKER'
-import hashlib,json,sys
+import hashlib, json, os, sys
 from pathlib import Path
+if os.environ.get('UNIXNU_KERNEL_BOOTSTRAP') == '1':
+    sys.exit(0)
 archive=Path(sys.argv[1]);root=Path(sys.argv[2])
 report_file = archive.with_name('build-report.json')
 if not report_file.exists():
@@ -709,10 +720,11 @@ PY_GPU_BROKER
       # Both transports import the same original class. Keep one exact alias
       # definition; link the real RAM transport object, not duplicate aliases.
       python3 - "$VIRTIO_ARCHIVE" "$RAM_BLOCK_ARCHIVE" <<'PY_BINDINGS'
-import json
+import json, os, sys
 from pathlib import Path
-import sys
 import hashlib
+if os.environ.get('UNIXNU_KERNEL_BOOTSTRAP') == '1':
+    sys.exit(0)
 records = []
 for p in sys.argv[1:]:
     bf = Path(p).with_name('bindings.json')
