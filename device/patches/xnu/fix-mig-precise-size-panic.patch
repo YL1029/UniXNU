@@ -1,9 +1,8 @@
 --- a/osfmk/kern/ipc_kobject.c
 +++ b/osfmk/kern/ipc_kobject.c
-@@ -275,12 +275,8 @@
- 					mig_buckets[pos].kreply_desc_cnt = mig_e[i]->kroutine[j].reply_descr_count;
- 					assert3u(mig_e[i]->kroutine[j].descr_count, <=, IPC_KOBJECT_DESC_MAX);
- 					assert3u(mig_e[i]->kroutine[j].reply_descr_count, <=, IPC_KOBJECT_RDESC_MAX);
+@@ -273,12 +273,8 @@
+ 					assert3u(mig_e[i]->kroutine[j].reply_descr_count,
+ 					    <=, IPC_KOBJECT_RDESC_MAX);
  				} else {
 -					/*
 -					 * Allocating a larger-than-needed kmsg creates hole for
@@ -14,5 +13,5 @@
 +					mig_buckets[pos].kreply_size = mig_e[i]->maxsize;
 +					mig_buckets[pos].kreply_desc_cnt = 0;
  				}
- 			}
- 		}
+ 
+ 				mig_buckets[pos].kobjidx = KOBJ_IDX_NOT_SET;
