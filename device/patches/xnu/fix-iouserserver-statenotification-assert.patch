@@ -2,29 +2,29 @@ diff --git a/iokit/Kernel/IOUserServer.cpp b/iokit/Kernel/IOUserServer.cpp
 index 1234567..89abcde 100644
 --- a/iokit/Kernel/IOUserServer.cpp
 +++ b/iokit/Kernel/IOUserServer.cpp
-@@ -6922,7 +6922,6 @@ IOSystemStateNotification::initialize(void)
+@@ -6922,25 +6922,21 @@ IOSystemStateNotification::initialize(void)
  		gIOSystemStateSleepDescriptionReasonKey = OSSymbol::withCStringNoCopy(kIOSystemStateSleepDescriptionReasonKey);
- 
+
  		ret = me->StateNotificationItemCreate(gIOSystemStateSleepDescriptionKey, NULL);
 -		assert(kIOReturnSuccess == ret);
- 
+
  		gIOSystemStateWakeDescriptionKey = (OSString *)OSSymbol::withCStringNoCopy(kIOSystemStateWakeDescriptionKey);
  		gIOSystemStateWakeDescriptionWakeReasonKey = OSSymbol::withCStringNoCopy(kIOSystemStateWakeDescriptionWakeReasonKey);
-@@ -6930,7 +6929,6 @@ IOSystemStateNotification::initialize(void)
+
  		ret = me->StateNotificationItemCreate(gIOSystemStateWakeDescriptionKey, NULL);
 -		assert(kIOReturnSuccess == ret);
- 
+
  		gIOSystemStateHaltDescriptionKey = (OSString *)OSSymbol::withCStringNoCopy(kIOSystemStateHaltDescriptionKey);
  		gIOSystemStateHaltDescriptionHaltStateKey = OSSymbol::withCStringNoCopy(kIOSystemStateHaltDescriptionHaltStateKey);
-@@ -6936,7 +6934,6 @@ IOSystemStateNotification::initialize(void)
+
  		ret = me->StateNotificationItemCreate(gIOSystemStateHaltDescriptionKey, NULL);
 -		assert(kIOReturnSuccess == ret);
- 
+
  		gIOSystemStatePowerSourceDescriptionKey = (OSString *)OSSymbol::withCStringNoCopy(kIOSystemStatePowerSourceDescriptionKey);
  		gIOSystemStatePowerSourceDescriptionACAttachedKey = OSSymbol::withCStringNoCopy(kIOSystemStatePowerSourceDescriptionACAttachedKey);
-@@ -6942,7 +6939,6 @@ IOSystemStateNotification::initialize(void)
+
  		ret = me->StateNotificationItemCreate(gIOSystemStatePowerSourceDescriptionKey, NULL);
 -		assert(kIOReturnSuccess == ret);
  	}
- 
+
  	return me;
