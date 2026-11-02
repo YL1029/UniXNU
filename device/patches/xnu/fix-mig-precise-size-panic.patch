@@ -26,3 +26,27 @@
  				}
  
  				mig_buckets[pos].kobjidx = KOBJ_IDX_NOT_SET;
+@@ -292,7 +288,11 @@
+ 	}
+ 
+ 	/* 77417305: pad to allow for MIG routines removals/cleanups */
+-	mach_kobj_count += 32;
++	if (mach_kobj_count < 1024) {
++		mach_kobj_count = 1024;
++	} else {
++		mach_kobj_count += 32;
++	}
+ 
+ 	printf("mig_table_max_displ = %d mach_kobj_count = %d\n",
+ 	    mig_table_max_displ, mach_kobj_count);
+@@ -405,7 +405,9 @@
+ 		return KERN_INVALID_ARGUMENT;
+ 	}
+ 
+-	assert(index < mach_kobj_count);
++	if (index >= mach_kobj_count) {
++		mach_kobj_count = index + 1;
++	}
+ 	ptr->kobjidx = index;
+ 
+ 	return KERN_SUCCESS;
