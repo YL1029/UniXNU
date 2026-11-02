@@ -202,7 +202,7 @@ id = "xnu"
 title = "DroidVM: macOS on Xiaomi 15 (SM8750 Gunyah)"
 type = "xnu"
 path = "Payloads/kernel.macho"
-args = "-v serial=3 debug=0x14e cs_enforcement_disable=1 amfi_get_out_of_my_way=1 ipc_control_port_options=0"
+args = "-v serial=3 debug=0x14e amfi_get_out_of_my_way=1 ipc_control_port_options=0"
 EOF
 
 # 使用 mtools 打包成标准的 FAT32 ESP 引导镜像
