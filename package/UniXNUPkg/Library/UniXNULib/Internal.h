@@ -596,4 +596,6 @@ UniXNUMenuConfirm (
   OUT UINTN      *Choice
   );
 
+extern CHAR16 gUniXNULastFailReason[128];
+
 #endif

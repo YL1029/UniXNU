@@ -10,6 +10,8 @@
 #include <Guid/Fdt.h>
 #include <Protocol/UniXNULoader.h>
 
+CHAR16 gUniXNULastFailReason[128] = { 0 };
+
 STATIC
 EFI_STATUS
 RunAction (
@@ -57,6 +59,7 @@ RunXnu (
 
   Status = gBS->LocateProtocol (&gUniXNULoaderProtocolGuid, NULL, (VOID **)&Loader);
   if (EFI_ERROR (Status)) {
+    UnicodeSPrint (gUniXNULastFailReason, sizeof (gUniXNULastFailReason), L"No Loader Proto (%r)", Status);
     UniXNULog ("xnu: no loader protocol installed; UniXNU does not provide one");
     return EFI_UNSUPPORTED;
   }
@@ -64,16 +67,19 @@ RunXnu (
   if (((Loader->Revision != UNIXNU_LOADER_REVISION_1) &&
        (Loader->Revision != UNIXNU_LOADER_REVISION)) || (Loader->Boot == NULL))
   {
+    UnicodeSPrint (gUniXNULastFailReason, sizeof (gUniXNULastFailReason), L"Bad Loader Rev %x / Null Boot", Loader != NULL ? Loader->Revision : 0);
     UniXNULog ("xnu: unsupported loader revision or missing Boot callback");
     return EFI_UNSUPPORTED;
   }
 
   Status = UniXNUStageKexts (Config, Entry, &Kexts, &KextCount);
   if (EFI_ERROR (Status)) {
+    UnicodeSPrint (gUniXNULastFailReason, sizeof (gUniXNULastFailReason), L"StageKexts fail (%r)", Status);
     return Status;
   }
 
   if ((KextCount != 0) && (Loader->Revision == UNIXNU_LOADER_REVISION_1)) {
+    UnicodeSPrint (gUniXNULastFailReason, sizeof (gUniXNULastFailReason), L"Rev1 cannot accept kexts");
     UniXNULog ("xnu: loader revision 1 cannot accept kexts");
     UniXNUFreeKexts (Kexts, KextCount);
     return EFI_UNSUPPORTED;
@@ -92,6 +98,9 @@ RunXnu (
   UniXNULog ("xnu: handing off %u staged kext(s) to loader", (UINT32)KextCount);
   Status = Loader->Boot (Loader, &Request);
   UniXNUFreeKexts (Kexts, KextCount);
+  if (EFI_ERROR (Status) && (gUniXNULastFailReason[0] == L'\0')) {
+    UnicodeSPrint (gUniXNULastFailReason, sizeof (gUniXNULastFailReason), L"DarwinBoot failed: %r", Status);
+  }
   return Status;
 }
 

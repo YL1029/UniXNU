@@ -154,7 +154,11 @@ UniXNURun (
     // The payload returned or failed: back to the menu, without the
     // countdown so a broken default cannot loop on a machine with input.
     //
-    UnicodeSPrint (Ui.Notice, sizeof (Ui.Notice), L"'%s' returned: %r", Entry->Title, Status);
+    if (gUniXNULastFailReason[0] != L'\0') {
+      UnicodeSPrint (Ui.Notice, sizeof (Ui.Notice), L"%s (%r)", gUniXNULastFailReason, Status);
+    } else {
+      UnicodeSPrint (Ui.Notice, sizeof (Ui.Notice), L"'%s' returned: %r", Entry->Title, Status);
+    }
     UniXNULog ("menu: entry %u returned %r", (UINT32)Index, Status);
     gBS->SetWatchdogTimer (0, 0, 0, NULL);
     Countdown = FALSE;
