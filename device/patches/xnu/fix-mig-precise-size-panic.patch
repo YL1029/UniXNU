@@ -1,8 +1,19 @@
 --- a/osfmk/kern/ipc_kobject.c
 +++ b/osfmk/kern/ipc_kobject.c
-@@ -273,12 +273,8 @@
- 					assert3u(mig_e[i]->kroutine[j].reply_descr_count,
- 					    <=, IPC_KOBJECT_RDESC_MAX);
+@@ -267,18 +267,14 @@
+ 				mig_buckets[pos].kroutine = mig_e[i]->kroutine[j].kstub_routine;
+ 				if (mig_e[i]->kroutine[j].max_reply_msg) {
+ 					mig_buckets[pos].kreply_size = mig_e[i]->kroutine[j].max_reply_msg;
+-					mig_buckets[pos].kreply_desc_cnt = mig_e[i]->kroutine[j].reply_descr_count;
+-					assert3u(mig_e[i]->kroutine[j].descr_count,
+-					    <=, IPC_KOBJECT_DESC_MAX);
+-					assert3u(mig_e[i]->kroutine[j].reply_descr_count,
+-					    <=, IPC_KOBJECT_RDESC_MAX);
++					if (mig_e[i]->kroutine[j].reply_descr_count <= IPC_KOBJECT_RDESC_MAX) {
++						mig_buckets[pos].kreply_desc_cnt = mig_e[i]->kroutine[j].reply_descr_count;
++					} else {
++						mig_buckets[pos].kreply_desc_cnt = 0;
++					}
  				} else {
 -					/*
 -					 * Allocating a larger-than-needed kmsg creates hole for
