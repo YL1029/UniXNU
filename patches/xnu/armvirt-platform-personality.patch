@@ -2,7 +2,7 @@ diff --git a/iokit/KernelConfigTables.cpp b/iokit/KernelConfigTables.cpp
 index 559a9db..080332e 100644
 --- a/iokit/KernelConfigTables.cpp
 +++ b/iokit/KernelConfigTables.cpp
-@@ -35,6 +35,23 @@
+@@ -35,6 +35,17 @@
  const char * gIOKernelConfigTables =
      "("
      "   {"
@@ -13,14 +13,8 @@ index 559a9db..080332e 100644
 +    "   {"
 +    "     'IOClass'         = ArmVirtPlatform;"
 +    "     'IOProviderClass' = IOPlatformExpertDevice;"
-+    "     'IONameMatch'     = 'linux,dummy-virt';"
++    "     'IONameMatch'     = ('linux,dummy-virt', 'device-tree');"
 +    "     'IOProbeScore'    = 10000:32;"
-+    "   },"
-+    "   {"
-+    "     'IOClass'         = ArmDTPlatform;"
-+    "     'IOProviderClass' = IOPlatformExpertDevice;"
-+    "     'IONameMatch'     = 'device-tree';"
-+    "     'IOProbeScore'    = 5000:32;"
 +    "   },"
 +    "   {"
      "     'IOClass'         = IOPanicPlatform;"
