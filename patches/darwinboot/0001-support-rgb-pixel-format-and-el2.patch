@@ -1,0 +1,72 @@
+﻿diff --git a/DarwinBootPkg/Driver/BootVideo.h b/DarwinBootPkg/Driver/BootVideo.h
+index 2bbb634..87f93e3 100644
+--- a/DarwinBootPkg/Driver/BootVideo.h
++++ b/DarwinBootPkg/Driver/BootVideo.h
+@@ -18,7 +18,9 @@ DarwinBootVideoFromGop (CONST EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop, UINT64 Video[6]
+   if ((Gop->Mode == NULL) || (Gop->Mode->Info == NULL) ||
+       (Gop->Mode->SizeOfInfo < sizeof (*Info))) { return EFI_COMPROMISED_DATA; }
+   Info = Gop->Mode->Info;
+-  if (Info->PixelFormat != PixelBlueGreenRedReserved8BitPerColor) { return EFI_UNSUPPORTED; }
++  if ((Info->PixelFormat != PixelBlueGreenRedReserved8BitPerColor) &&
++      (Info->PixelFormat != PixelRedGreenBlueReserved8BitPerColor) &&
++      (Info->PixelFormat != PixelBitMask)) { return EFI_UNSUPPORTED; }
+   RowBytes = (UINT64)Info->PixelsPerScanLine * 4;
+   if ((Info->HorizontalResolution == 0) || (Info->VerticalResolution == 0) ||
+       (Info->PixelsPerScanLine < Info->HorizontalResolution) ||
+diff --git a/DarwinBootPkg/Driver/DarwinBoot.c b/DarwinBootPkg/Driver/DarwinBoot.c
+index 109479e..8044c44 100644
+--- a/DarwinBootPkg/Driver/DarwinBoot.c
++++ b/DarwinBootPkg/Driver/DarwinBoot.c
+@@ -487,11 +487,18 @@ Boot (
+   CHAR8                           CommandLine[1024];
+   UINT64                          Video[6];
+ 
++  UINT64 CurrentEl;
++
+   (VOID)This;
+   if ((Request == NULL) || (Request->Volume == NULL) || (Request->KernelPath == NULL)) { return EFI_INVALID_PARAMETER; }
++  CurrentEl = DarwinCurrentEl ();
+   if ((Request->KextCount != 0) || (Request->DeviceTree != NULL) || (Request->DeviceTreeSize != 0) ||
+-      (DarwinCurrentEl () != 4)) {
+-    Print (L"DARWINBOOT: unsupported inputs or exception level; firmware retained\n");
++      ((CurrentEl != 4) && (CurrentEl != 8))) {
++    CHAR16 Msg[96];
++    UnicodeSPrint (Msg, sizeof (Msg), L"BAD INPUT/EL: kext=%u dt=%p el=%lu",
++                   (UINT32)Request->KextCount, Request->DeviceTree, CurrentEl >> 2);
++    DiagDraw (Msg, 0);
++    Print (L"DARWINBOOT: unsupported inputs or exception level (%lu); firmware retained\n", CurrentEl >> 2);
+     return EFI_UNSUPPORTED;
+   }
+   if (!RamdiskLayout (Request->Ramdisk, Request->RamdiskSize, &RamdiskExpandedSize, &RamdiskPacked)) {
+@@ -647,6 +654,11 @@ Boot (
+   CpuDeadLoop ();
+   return EFI_ABORTED;
+ Fail:
++  if (EFI_ERROR (Status)) {
++    CHAR16 ErrBuf[96];
++    UnicodeSPrint (ErrBuf, sizeof (ErrBuf), L"FAIL: %r (0x%lx)", Status, (UINT64)Status);
++    DiagDraw (ErrBuf, 0);
++  }
+   if (Root != NULL) { Root->Close (Root); }
+   if (Image != NULL) { FreePool (Image); }
+   if (Tree != NULL) { FreePool (Tree); }
+diff --git a/DarwinBootPkg/Driver/Entry.S b/DarwinBootPkg/Driver/Entry.S
+index 890d4df..0c7ce21 100644
+--- a/DarwinBootPkg/Driver/Entry.S
++++ b/DarwinBootPkg/Driver/Entry.S
+@@ -49,4 +49,15 @@ ASM_FUNC(DarwinEnter)
+   tlbi vmalle1
+   dsb sy
+   isb
++  mrs x7, CurrentEL
++  cmp x7, #8
++  b.ne 4f
++  // At EL2: set HCR_EL2.RW = 1 (AArch64 EL1 execution)
++  mov x8, #(1 << 31)
++  msr hcr_el2, x8
++  mov x8, #0x3c5
++  msr spsr_el2, x8
++  msr elr_el2, x1
++  eret
++4:
+   br x1

@@ -118,6 +118,10 @@ python3 "$ROOT/unixnu" build kernel
 
 # 7. 构建 EFI 引导程序包 (UniXNU.efi / DarwinBoot.efi)
 echo "==> [步骤 4/4] 构建 UEFI 引导程序与驱动 (package)..."
+if [ -f "$ROOT/patches/darwinboot/0001-support-rgb-pixel-format-and-el2.patch" ]; then
+    echo "==> 为 DarwinBoot 应用 DroidVM 兼容性补丁 (RGB 像素格式与 EL2 支持)..."
+    git -C "$ROOT/drivers/DarwinBoot" apply "$ROOT/patches/darwinboot/0001-support-rgb-pixel-format-and-el2.patch" || true
+fi
 python3 "$ROOT/unixnu" build package
 
 # 8. 组装 boot.img 引导磁盘
