@@ -100,6 +100,12 @@ for m in UniXNU UniXNUDxe HelloPayload SampleDriver XnuTest; do
 done
 
 if [ -d "$DARWINBOOT_DIR/DarwinBootPkg" ]; then
+  echo "== patching DarwinBoot for DroidVM (RGB GOP, EL2/EL1 support)..."
+  if [ -f "$ROOT/../scripts/patch-darwinboot.py" ]; then
+    python3 "$ROOT/../scripts/patch-darwinboot.py" "$DARWINBOOT_DIR"
+  elif [ -f "$ROOT/scripts/patch-darwinboot.py" ]; then
+    python3 "$ROOT/scripts/patch-darwinboot.py" "$DARWINBOOT_DIR"
+  fi
   echo "== build DarwinBoot $ARCH $TARGET $TOOLCHAIN"
   build -p DarwinBootPkg/DarwinBoot.dsc -a "$ARCH" -b "$TARGET" -t "$TOOLCHAIN" -n "$JOBS"
   for cand in \
