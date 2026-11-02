@@ -1,0 +1,18 @@
+--- a/osfmk/kern/ipc_kobject.c
++++ b/osfmk/kern/ipc_kobject.c
+@@ -275,12 +275,8 @@
+ 					mig_buckets[pos].kreply_desc_cnt = mig_e[i]->kroutine[j].reply_descr_count;
+ 					assert3u(mig_e[i]->kroutine[j].descr_count, <=, IPC_KOBJECT_DESC_MAX);
+ 					assert3u(mig_e[i]->kroutine[j].reply_descr_count, <=, IPC_KOBJECT_RDESC_MAX);
+ 				} else {
+-					/*
+-					 * Allocating a larger-than-needed kmsg creates hole for
+-					 * inlined kmsgs (IKM_TYPE_ALL_INLINED) during copyout.
+-					 * Disallow that.
+-					 */
+-					panic("kroutine must have precise size %d %d", mig_e[i]->start, j);
++					mig_buckets[pos].kreply_size = mig_e[i]->maxsize;
++					mig_buckets[pos].kreply_desc_cnt = 0;
+ 				}
+ 			}
+ 		}
