@@ -13,13 +13,73 @@ def patch_darwinboot(darwinboot_dir):
     bv = d / 'BootVideo.h'
     if bv.is_file():
         c = bv.read_text(encoding='utf-8')
-        if 'PixelRedGreenBlueReserved8BitPerColor' not in c:
-            c = c.replace(
-                'if (Info->PixelFormat != PixelBlueGreenRedReserved8BitPerColor) { return EFI_UNSUPPORTED; }',
-                'if ((Info->PixelFormat != PixelBlueGreenRedReserved8BitPerColor) && (Info->PixelFormat != PixelRedGreenBlueReserved8BitPerColor) && (Info->PixelFormat != PixelBitMask)) { return EFI_UNSUPPORTED; }'
-            )
-            bv.write_text(c, encoding='utf-8', newline='\n')
-            print("  [+] Patched BootVideo.h (added RGB & BitMask GOP support)")
+        if 'BltOnly' not in c:
+            new_bv = '''// SPDX-License-Identifier: BSD-2-Clause-Patent
+#ifndef DARWIN_BOOT_VIDEO_H_
+#define DARWIN_BOOT_VIDEO_H_
+
+#include <Uefi.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/PrintLib.h>
+#include <Library/UefiLib.h>
+#include <Protocol/GraphicsOutput.h>
+
+STATIC
+EFI_STATUS
+DarwinBootVideoFromGop (CONST EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop, UINT64 Video[6])
+{
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
+  UINT64 RowBytes;
+  UINT64 Bytes;
+
+  ZeroMem (Video, 6 * sizeof (*Video));
+  if ((Gop == NULL) || (Gop->Mode == NULL) || (Gop->Mode->Info == NULL) ||
+      (Gop->Mode->SizeOfInfo < sizeof (*Info))) {
+    Print (L"DARWINBOOT: GOP or Info is NULL\\n");
+    return EFI_SUCCESS;
+  }
+  Info = Gop->Mode->Info;
+  Print (L"DARWINBOOT: GOP mode %u: %ux%u format=%u scanline=%u fb=0x%lx size=0x%lx\\n",
+         Gop->Mode->Mode, Info->HorizontalResolution, Info->VerticalResolution,
+         Info->PixelFormat, Info->PixelsPerScanLine,
+         Gop->Mode->FrameBufferBase, Gop->Mode->FrameBufferSize);
+
+  // If BltOnly (PixelBltOnly=3) or no direct linear framebuffer, do not abort boot!
+  // Fall back to headless/text mode so XNU kernel can boot and print to serial console.
+  if ((Info->PixelFormat == PixelBltOnly) || (Gop->Mode->FrameBufferBase == 0)) {
+    Print (L"DARWINBOOT: BltOnly or FB=0, fallback to headless video\\n");
+    return EFI_SUCCESS;
+  }
+
+  RowBytes = (UINT64)Info->PixelsPerScanLine * 4;
+  if ((Info->HorizontalResolution == 0) || (Info->VerticalResolution == 0) ||
+      (Info->PixelsPerScanLine < Info->HorizontalResolution) ||
+      (Info->VerticalResolution > MAX_UINT64 / RowBytes)) {
+    Print (L"DARWINBOOT: Invalid GOP dimensions, fallback to headless\\n");
+    return EFI_SUCCESS;
+  }
+
+  Bytes = RowBytes * Info->VerticalResolution;
+  if ((Gop->Mode->FrameBufferBase & 3) ||
+      (Gop->Mode->FrameBufferSize < Bytes) ||
+      (Gop->Mode->FrameBufferBase > MAX_UINT64 - Gop->Mode->FrameBufferSize)) {
+    Print (L"DARWINBOOT: GOP buffer size check mismatch, fallback to headless\\n");
+    return EFI_SUCCESS;
+  }
+
+  Video[0] = Gop->Mode->FrameBufferBase;
+  Video[1] = 1;
+  Video[2] = RowBytes;
+  Video[3] = Info->HorizontalResolution;
+  Video[4] = Info->VerticalResolution;
+  Video[5] = 32;
+  return EFI_SUCCESS;
+}
+
+#endif
+'''
+            bv.write_text(new_bv, encoding='utf-8', newline='\n')
+            print("  [+] Patched BootVideo.h (added BltOnly / headless fallback & debug logging)")
 
     # 2. Patch DarwinBoot.c
     db = d / 'DarwinBoot.c'
