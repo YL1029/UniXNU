@@ -160,16 +160,13 @@ echo "✔ 发现 kernel.macho: $KERNEL_MACHO"
 # AppleARMPlatform 的 AppleARMCPU personality 面向真实 Apple 芯片：虚拟 /cpus 节点一旦由
 # 它接手，它就会因缺少 Apple 专有 CPU 属性而 panic（AppleARMCPU.cpp:111）。这里只从预链接
 # 元数据里摘掉该 personality，kext 本体与其他 16 个 personality 保持不变。
+# AMFI 的 ConfigurationSettings 只有在 kern.hv_vmm_present 为 0 时才通过 ApplePMGRNub 读 PMGR/AON
+# 的开发者模式状态；虚拟板没有 PMGR 硬件，那条路径会 panic("AMFI: No PMGR?")。ADT 的
+# /defaults/vmm-present 让内核报告 kern.hv_vmm_present，AMFI 随即走 “Booted in a VM” 分支。
 echo "==> 移除预链接 kext 中会抢占虚拟 CPU 节点的 AppleARMCPU personality..."
 python3 "$ROOT/device/scripts/patch-prelink-personalities.py" \
     --kernel "$KERNEL_MACHO" \
     --drop com.apple.driver.AppleARMPlatform:AppleARMCPU
-
-# AMFI 的 ConfigurationSettings 通过 ApplePMGRNub 读 PMGR/AON 的开发者模式状态；虚拟板没有 PMGR 硬件，
-# 它会 panic("AMFI: No PMGR?")。它自带一条不访问 PMGR 的“开发者模式强制开启”分支，由一个静态标志位选择：
-# 把该标志位清零（仅数据，不改代码），让 AMFI 启动时走这条分支。
-echo "==> 让 AMFI 的开发者模式解析走无 PMGR 分支..."
-python3 "$ROOT/device/scripts/patch-amfi-developer-mode.py" --kernel "$KERNEL_MACHO"
 
 STAGE_DIR="$ROOT/out/esp_stage"
 rm -rf "$STAGE_DIR"
@@ -195,6 +192,7 @@ python3 "$ROOT/device/scripts/make-virt-adt.py" \
     --ipad-identity \
     --smp 1 \
     --gic-cpus "$GIC_CPUS" \
+    --vmm-present \
     --output "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt"
 
 if [ ! -f "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt" ]; then
