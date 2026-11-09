@@ -165,6 +165,12 @@ python3 "$ROOT/device/scripts/patch-prelink-personalities.py" \
     --kernel "$KERNEL_MACHO" \
     --drop com.apple.driver.AppleARMPlatform:AppleARMCPU
 
+# AMFI 的 ConfigurationSettings 通过 ApplePMGRNub 读 PMGR/AON 的开发者模式状态；虚拟板没有 PMGR 硬件，
+# 它会 panic("AMFI: No PMGR?")。它自带一条不访问 PMGR 的“开发者模式强制开启”分支，由一个静态标志位选择：
+# 把该标志位清零（仅数据，不改代码），让 AMFI 启动时走这条分支。
+echo "==> 让 AMFI 的开发者模式解析走无 PMGR 分支..."
+python3 "$ROOT/device/scripts/patch-amfi-developer-mode.py" --kernel "$KERNEL_MACHO"
+
 STAGE_DIR="$ROOT/out/esp_stage"
 rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR/EFI/BOOT"
