@@ -60,7 +60,7 @@ def empty_nvram_proxy():
             ('nvram-current-bank', u32(0)), ('nvram-proxy-data', bytes(image))]
 
 
-def machine_layout(name, smp):
+def machine_layout(name, smp, gic_cpus):
     """Physical addresses of the machine: dram base, arm-io window, GIC and UART."""
     if name == 'qemu':
         # hw/arm/virt.c: VIRT_GIC_DIST 0x08000000, VIRT_GIC_REDIST 0x080a0000 (0xf60000), VIRT_UART 0x09000000.
@@ -69,8 +69,11 @@ def machine_layout(name, smp):
                     ecam=(0x3f000000, 0x100000), product='QEMU virt')
     # crosvm aarch64/src/lib.rs: AARCH64_GIC_DIST_BASE 0x40000000 - 0x10000, redistributors of 0x20000 per vCPU
     # directly below; arch/src/serial.rs + DroidVM SBSA UART at 0x6000. The arm-io window starts at 0x1000.
+    # The redistributor region covers every vCPU the VMM exposes (devices/src/irqchip/geniezone/mod.rs:
+    # redist_addr = DIST_BASE - REDIST_SIZE * num_vcpus), not the guest's /cpus count: ArmCpu finds its own
+    # frame by GICR_TYPER affinity inside that region.
     gicd_base = 0x40000000 - 0x10000
-    gicr_size = 0x20000 * smp
+    gicr_size = 0x20000 * gic_cpus
     return dict(dram_base=0x80000000, io_base=0x1000, io_size=0x40000000 - 0x1000,
                 gicd=(gicd_base, 0x10000), gicr=(gicd_base - gicr_size, gicr_size), uart=(0x6000, 0x1000),
                 ecam=(0x10000, 0x100000), product='DroidVM crosvm')
@@ -80,6 +83,9 @@ parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.R
 parser.add_argument('--machine', choices=['qemu', 'crosvm'], default='qemu')
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--smp', type=int, default=1, help='CPU count; MPIDR Aff0 numbers them, PSCI conduit is hvc')
+parser.add_argument('--gic-cpus', type=int, metavar='N',
+                    help='crosvm redistributor frames (default: --smp). crosvm places one 0x20000 frame per vCPU '
+                         'below GICD, so this must equal the VMM cpu_count even when the guest describes one CPU')
 parser.add_argument('--timebase', type=lambda value: int(value, 0), required=True,
                     help='CNTFRQ_EL0 of the guest, which is the host counter frequency under KVM and Gunyah')
 parser.add_argument('--dram-base', type=lambda value: int(value, 0), help='override the machine RAM base')
@@ -107,6 +113,8 @@ parser.add_argument('--virtio-mmio', type=int, default=0, metavar='N',
 args = parser.parse_args()
 if not 1 <= args.smp <= 8:
     parser.error('--smp is 1..8')
+if args.gic_cpus is not None and not 1 <= args.gic_cpus <= 64:
+    parser.error('--gic-cpus is 1..64')
 if not 0x10000000 <= args.owned_memory_size <= 0x200000000 or args.owned_memory_size % 0x200000:
     parser.error('owned memory must be 256 MiB to 8 GiB, aligned to 2 MiB')
 if not 0 < args.timebase < 1 << 32:
@@ -116,7 +124,7 @@ if (args.unique_chip_id is None) != (args.chip_id is None):
 if args.virtio_mmio and (args.machine != 'qemu' or not 0 < args.virtio_mmio <= 32):
     parser.error('--virtio-mmio is 1..32 transports of QEMU virt')
 
-layout = machine_layout(args.machine, args.smp)
+layout = machine_layout(args.machine, args.smp, args.gic_cpus or args.smp)
 dram_base = args.dram_base if args.dram_base is not None else layout['dram_base']
 io_base = layout['io_base']
 
@@ -204,4 +212,4 @@ tree = node('device-tree', [*identity, *cells, ('compatible', string('linux,dumm
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_bytes(tree)
 print(f'{args.machine} ADT: {len(tree)} bytes, {args.smp} CPU, timebase {args.timebase} Hz, dram {dram_base:#x}+{args.dram_size:#x}, '
-      f'uart0 {layout["uart"][0]:#x}')
+      f'uart0 {layout["uart"][0]:#x}, gicr {layout["gicr"][0]:#x}+{layout["gicr"][1]:#x}')

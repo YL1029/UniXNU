@@ -319,10 +319,12 @@ bool ArmCpu::wakeRedistributor (bool local)
   if (local) { __asm__ volatile ("mrs %0, mpidr_el1" : "=r" (affinity)); }
   uint32_t target = static_cast<uint32_t> ((affinity & 0xffffff) | ((affinity >> 8) & 0xff000000));
   redist = 0;
+  uint64_t firstTyper = 0;
   for (uint64_t offset = 0; offset + 0x20000 <= redistSize;) {
     armcpu_gic_typer_probe[0] = static_cast<uint32_t> (offset);
     uint64_t typer = *reinterpret_cast<volatile uint64_t *> (frames + offset + 8);
     armcpu_gic_typer_probe[1] = static_cast<uint32_t> (typer);
+    if (offset == 0) { firstTyper = typer; }
     if (static_cast<uint32_t> (typer >> 32) == target) {
       redist = frames + offset;
       break;
@@ -330,7 +332,12 @@ bool ArmCpu::wakeRedistributor (bool local)
     if ((typer & 16) != 0) { break; }
     offset += gRedistStride != 0 ? gRedistStride : ((typer & 2) != 0 ? 0x40000 : 0x20000);
   }
-  if (redist == 0) { return gicFailed (20); }
+  if (redist == 0) {
+    IOLog ("ArmCpu: no GICR frame for affinity %#x in %#llx bytes at %#llx (first typer %#llx)\n",
+           target, static_cast<unsigned long long> (redistSize),
+           static_cast<unsigned long long> (frames), static_cast<unsigned long long> (firstTyper));
+    return gicFailed (20);
+  }
   write32 (redist, 0x14, read32 (redist, 0x14) & ~2U);
   if (!waitClear (redist, 0x14, 4)) { return gicFailed (21); }
   uintptr_t sgi = redist + 0x10000;

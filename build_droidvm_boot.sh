@@ -179,11 +179,16 @@ cp "$KERNEL_MACHO" "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho"
 
 # 生成设备树 kernel.macho.adt (DarwinBoot 加载 XNU 所必需)
 echo "==> 正在生成 DroidVM 设备树 (kernel.macho.adt)..."
+# GIC 重分发器区域按 VM 的 vCPU 数描述（手机端 vms.json 的 cpu_count，当前 4）：
+# crosvm/Gunyah 在 GICD 之下为每个 vCPU 放一个 0x20000 帧，ArmCpu 在该区域内按 GICR_TYPER 亲和性找自己的帧；
+# 而 /cpus 仍只描述引导 CPU（--smp 1），两者的数量本来就可以不同。
+GIC_CPUS="${GIC_CPUS:-4}"
 python3 "$ROOT/device/scripts/make-virt-adt.py" \
     --machine crosvm \
     --timebase 19200000 \
     --ipad-identity \
     --smp 1 \
+    --gic-cpus "$GIC_CPUS" \
     --output "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt"
 
 if [ ! -f "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt" ]; then
