@@ -157,6 +157,14 @@ echo "✔ 发现 UniXNU.efi: $UNIXNU_EFI"
 echo "✔ 发现 DarwinBoot.efi: $DARWINBOOT_EFI"
 echo "✔ 发现 kernel.macho: $KERNEL_MACHO"
 
+# AppleARMPlatform 的 AppleARMCPU personality 面向真实 Apple 芯片：虚拟 /cpus 节点一旦由
+# 它接手，它就会因缺少 Apple 专有 CPU 属性而 panic（AppleARMCPU.cpp:111）。这里只从预链接
+# 元数据里摘掉该 personality，kext 本体与其他 16 个 personality 保持不变。
+echo "==> 移除预链接 kext 中会抢占虚拟 CPU 节点的 AppleARMCPU personality..."
+python3 "$ROOT/device/scripts/patch-prelink-personalities.py" \
+    --kernel "$KERNEL_MACHO" \
+    --drop com.apple.driver.AppleARMPlatform:AppleARMCPU
+
 STAGE_DIR="$ROOT/out/esp_stage"
 rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR/EFI/BOOT"
