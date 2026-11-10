@@ -20,7 +20,7 @@ on:
         default: wip/hackintosh
       overlay_ref:
         description: Droid-VM/macOS-DroidVM branch or commit (overlay)
-        default: macOS
+        default: main
 
 jobs:
   build:
