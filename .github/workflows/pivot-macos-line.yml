@@ -97,6 +97,11 @@ jobs:
         working-directory: device
         run: |
           set -euo pipefail
+          # The first kernel pass runs the bootstrap build before the archive builders, so its link
+          # can miss the symbols the overlay's display/HID objects reference; the pass still builds
+          # the archives and compile records. The second pass links against them.
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --from kernel \
+            || echo "kernel pass 1 stopped after the bootstrap build; rerunning with the archives"
           python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --from kernel
           ls -l ../UniXNU/out/droidvm/release
 
