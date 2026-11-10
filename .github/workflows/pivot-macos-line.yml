@@ -62,7 +62,10 @@ jobs:
         working-directory: device
         run: |
           set -euo pipefail
-          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU
+          # The reference candidate only feeds the device's audit steps and needs the encrypted
+          # reference kernel asset upstream keeps; skip just that step and run the rest.
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --to data-base
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --from kernel
           ls -l ../UniXNU/out/droidvm/release
 
       - name: Upload logs
