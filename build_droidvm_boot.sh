@@ -95,6 +95,29 @@ python3 "$ROOT/unixnu" defconfig droidvm_defconfig -D "$DEVICE_DIR"
 echo "==> [步骤 2/4] 获取依赖源码 (feeds)..."
 python3 "$ROOT/unixnu" fetch
 
+# 真实的 verified-root 策略（os + SystemOS 的 manifest 与 owner 公钥）必须与手机上的两个镜像逐块哈希一致。
+# CI 没有那 16GB 原始镜像，因此从 release 资源下载（由镜像所在机器用 VerifiedRoot/tools/manifest.py 生成并签名）。
+# 缺少它时构建会退回 fixture 策略，内核只把磁盘当作 unverified，SystemOS 的 owner 挂载会被拒绝（EAUTH）。
+VR_INPUTS_URL="${VR_INPUTS_URL:-https://github.com/YL1029/UniXNU/releases/download/verified-root-inputs}"
+VR_INPUTS_DIR="$ROOT/out/droidvm/tree/build/verified-root-inputs"
+echo "==> 获取 verified-root 策略 (os/systemos manifest)..."
+mkdir -p "$VR_INPUTS_DIR"
+for name in os.manifest.bin systemos.manifest.bin trusted-key.bin os.samples.bin inputs.json; do
+    curl -fsSL --retry 3 "$VR_INPUTS_URL/$name" -o "$VR_INPUTS_DIR/$name" || {
+        echo "❌ 错误: 无法下载 verified-root 输入 $name"; exit 1; }
+done
+python3 - "$VR_INPUTS_DIR" <<'PY'
+import json, sys
+from pathlib import Path
+directory = Path(sys.argv[1])
+meta = json.loads((directory / 'inputs.json').read_text())
+for name in ('os', 'systemos'):
+    entry = meta[name]
+    size = (directory / f'{name}.manifest.bin').stat().st_size
+    print(f"  {name}: manifest {size} bytes, volume {entry['volume_uuid']}, "
+          f"{entry['block_count']} blocks x {entry['block_bytes']}")
+PY
+
 # 确保源码工作目录状态纯净（注意：绝不清除 out/feeds，只重置 xnu-work 临时目录）
 XNU_WORK="$ROOT/out/droidvm/tree/.cache/xnu-work"
 if [ -d "$XNU_WORK/.git" ]; then
@@ -231,7 +254,9 @@ EOF
 OUTPUT_BOOT_IMG="$ROOT/boot.img"
 rm -f "$OUTPUT_BOOT_IMG"
 
-BOOT_SIZE_MIB=128
+# 内核内嵌真实的 verified-root 策略（os 85MB + systemos 41MB manifest），内核+预链接约 280MB，
+# 128MiB 的 ESP 放不下，因此放大到 384MiB。
+BOOT_SIZE_MIB=384
 truncate -s "${BOOT_SIZE_MIB}M" "$OUTPUT_BOOT_IMG"
 mformat -i "$OUTPUT_BOOT_IMG" -F -v "UNIXNUESP" -C -T $((BOOT_SIZE_MIB * 2048)) ::
 mcopy -s -i "$OUTPUT_BOOT_IMG" "$STAGE_DIR"/* ::/
