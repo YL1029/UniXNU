@@ -18,11 +18,11 @@
 +static boolean_t
 +native_owner_shared_cache_carrier(vnode_t process_root, vnode_t file)
 +{
-+	const char *root_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2";
++	const char *root_uuid = "63E8D68F-1310-4609-8FD8-CA9501AAFAD4";
 +#if defined(XNU_OWNER_CACHE_CARRIER_WRONG_UUID) && XNU_OWNER_CACHE_CARRIER_WRONG_UUID
-+	const char *cache_uuid = "9846FE78-2910-4297-AF97-D59BB6F8FC16";
++	const char *cache_uuid = "169A2122-A99D-4309-AD13-042E501D4FE5";
 +#else
-+	const char *cache_uuid = "8846FE78-2910-4297-AF97-D59BB6F8FC16";
++	const char *cache_uuid = "069A2122-A99D-4309-AD13-042E501D4FE5";
 +#endif
 +	const char *directory = "/private/preboot/System/Library/Caches/com.apple.dyld";
 +	vnode_t expected_parent = NULLVP, device_vnode;
