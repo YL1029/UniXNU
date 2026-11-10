@@ -186,6 +186,9 @@ echo "==> 正在生成 DroidVM 设备树 (kernel.macho.adt)..."
 # crosvm/Gunyah 在 GICD 之下为每个 vCPU 放一个 0x20000 帧，ArmCpu 在该区域内按 GICR_TYPER 亲和性找自己的帧；
 # 而 /cpus 仍只描述引导 CPU（--smp 1），两者的数量本来就可以不同。
 GIC_CPUS="${GIC_CPUS:-4}"
+# 根卷 = os.img 里的 OS 卷（verified-root 策略里 pin 的 UUID）。没有 /chosen/root-matching 时
+# IOKitBSDInit 只会打印 "Still waiting for root device" 直到超时 panic。
+ROOT_VOLUME_UUID="${ROOT_VOLUME_UUID:-04769D26-2CA0-4825-B443-E2E5F88300F2}"
 python3 "$ROOT/device/scripts/make-virt-adt.py" \
     --machine crosvm \
     --timebase 19200000 \
@@ -193,6 +196,7 @@ python3 "$ROOT/device/scripts/make-virt-adt.py" \
     --smp 1 \
     --gic-cpus "$GIC_CPUS" \
     --vmm-present \
+    --root-match-volume-uuid "$ROOT_VOLUME_UUID" \
     --output "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt"
 
 if [ ! -f "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt" ]; then
