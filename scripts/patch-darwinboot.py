@@ -146,6 +146,12 @@ DarwinBootVideoFromGop (CONST EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop, UINT64 Video[6]
             new_rf_adt = 'Status = ReadFile (Root, TreePath, SIZE_16MB, &Tree, &TreeSize);\n  if (EFI_ERROR (Status)) { Print (L"DARWINBOOT: ReadFile .adt fail: %r\\n", Status); Status = EFI_NOT_READY; goto Fail; }'
             c = c.replace(old_rf_adt, new_rf_adt)
 
+            # The verified-root owner policies are embedded in the kernel (os + SystemOS
+            # manifests, ~126 MB), so kernel.macho is ~180 MB: raise the 128 MB read limit
+            # and the 256 MB compile-time window clamp.
+            c = c.replace('Request->KernelPath, SIZE_128MB', 'Request->KernelPath, SIZE_512MB')
+            c = c.replace('#define WINDOW_SIZE  SIZE_256MB', '#define WINDOW_SIZE  SIZE_512MB')
+
             db.write_text(c, encoding='utf-8', newline='\n')
             print("  [+] Patched DarwinBoot.c (instrumented checks & distinct error codes)")
 
