@@ -80,11 +80,24 @@ jobs:
           print('reference build patched')
           PY
 
-      - name: Build everything
+      - name: Build everything up to the reference kernel
         working-directory: device
         run: |
           set -euo pipefail
-          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --to reference
+
+      - name: Bootstrap placeholders
+        # The bootstrap pass reads records that only the archive builders write; upstream mainline
+        # writes placeholder records before `unixnu build kernel` for exactly this reason.
+        run: |
+          set -euo pipefail
+          python3 ci/scripts/mainline-bootstrap-placeholders.py UniXNU/out/droidvm/tree
+
+      - name: Build everything from the kernel
+        working-directory: device
+        run: |
+          set -euo pipefail
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --from kernel
           ls -l ../UniXNU/out/droidvm/release
 
       - name: Upload logs
