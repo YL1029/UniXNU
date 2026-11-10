@@ -79,11 +79,11 @@ jobs:
           print(max(data.find(b'NXSB', 32) - 32, 0))
           PY
           )
-          python3 macOS-DroidVM/scripts/apfs-volumes.py data.raw "$OFFSET"
+          python3 scripts/apfs-volumes.py data.raw "$OFFSET"
           OLD=$(python3 - "$OFFSET" <<'PY'
           import re, subprocess, sys
           offset = sys.argv[1]
-          listing = subprocess.run(['python3', 'macOS-DroidVM/scripts/apfs-volumes.py', 'data.raw', offset],
+          listing = subprocess.run(['python3', 'scripts/apfs-volumes.py', 'data.raw', offset],
                                    capture_output=True, text=True, check=True).stdout
           for line in listing.splitlines():
               if 'role Data' in line:
@@ -93,9 +93,9 @@ jobs:
                       break
           PY
           )
-          python3 macOS-DroidVM/scripts/apfs-volumes.py data.raw "$OFFSET" --set-uuid "$OLD" "$DATA_UUID"
-          python3 macOS-DroidVM/scripts/apfs-volumes.py data.raw "$OFFSET"
-          python3 UniXNU/scripts/pack-data-ramdisk.py data.raw scratch-data.img
+          python3 scripts/apfs-volumes.py data.raw "$OFFSET" --set-uuid "$OLD" "$DATA_UUID"
+          python3 scripts/apfs-volumes.py data.raw "$OFFSET"
+          python3 scripts/pack-data-ramdisk.py data.raw scratch-data.img
           ls -l scratch-data.img
 
       - name: Publish the seed
