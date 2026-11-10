@@ -205,6 +205,21 @@ cp "$KERNEL_MACHO" "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho"
 
 # 生成设备树 kernel.macho.adt (DarwinBoot 加载 XNU 所必需)
 echo "==> 正在生成 DroidVM 设备树 (kernel.macho.adt)..."
+# /private/var 的 Data 卷必须可写，而 crosvm 的磁盘只接受只读盘，所以项目用一块内存盘：
+# DBRDISK1 稀疏格式（只保存非零 4K 页），由 NativeRamBlock 展开成 APFS 容器。
+# seed 由 .github/workflows/macos-data-seed.yml 在 macOS runner 上从安装器模板生成并发布为 release 资源。
+DATA_SEED_URL="${DATA_SEED_URL:-https://github.com/YL1029/UniXNU/releases/download/macos-data-seed/scratch-data.img}"
+DATA_SEED="$STAGE_DIR/EFI/UniXNU/Payloads/scratch-data.img"
+ADT_RAMDISK=""
+INITRD_LINE=""
+if curl -fsSL --retry 3 "$DATA_SEED_URL" -o "$DATA_SEED"; then
+    echo "==> Data seed: $(( $(wc -c < "$DATA_SEED") >> 20 )) MiB (packed)"
+    ADT_RAMDISK="--packed-data-ramdisk"
+    INITRD_LINE='initrd = "Payloads/scratch-data.img"'
+else
+    rm -f "$DATA_SEED"
+    echo "⚠️  警告: 未取到 Data seed，/private/var 将缺失（内核会在 owner Data 挂载处 panic）"
+fi
 # GIC 重分发器区域按 VM 的 vCPU 数描述（手机端 vms.json 的 cpu_count，当前 4）：
 # crosvm/Gunyah 在 GICD 之下为每个 vCPU 放一个 0x20000 帧，ArmCpu 在该区域内按 GICR_TYPER 亲和性找自己的帧；
 # 而 /cpus 仍只描述引导 CPU（--smp 1），两者的数量本来就可以不同。
@@ -221,6 +236,7 @@ python3 "$ROOT/device/scripts/make-virt-adt.py" \
     --gic-cpus "$GIC_CPUS" \
     --vmm-present \
     --root-match-volume-uuid "$ROOT_VOLUME_UUID" \
+    ${ADT_RAMDISK} \
     --output "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt"
 
 if [ ! -f "$STAGE_DIR/EFI/UniXNU/Payloads/kernel.macho.adt" ]; then
@@ -230,7 +246,7 @@ fi
 echo "✔ 成功生成 kernel.macho.adt"
 
 # 生成启动配置 unixnu.toml
-cat << 'EOF' > "$STAGE_DIR/EFI/UniXNU/unixnu.toml"
+cat << EOF > "$STAGE_DIR/EFI/UniXNU/unixnu.toml"
 version = 1
 [boot]
 timeout = 3
@@ -247,6 +263,7 @@ id = "xnu"
 title = "DroidVM: macOS on Xiaomi 15 (SM8750 Gunyah)"
 type = "xnu"
 path = "Payloads/kernel.macho"
+${INITRD_LINE}
 args = "-v serial=3 debug=0x14e amfi_get_out_of_my_way=1 ipc_control_port_options=0"
 EOF
 
@@ -254,9 +271,13 @@ EOF
 OUTPUT_BOOT_IMG="$ROOT/boot.img"
 rm -f "$OUTPUT_BOOT_IMG"
 
-# 内核内嵌真实的 verified-root 策略（os 85MB + systemos 41MB manifest），内核+预链接约 280MB，
-# 128MiB 的 ESP 放不下，因此放大到 384MiB。
-BOOT_SIZE_MIB=384
+# ESP 要同时放下内核（内嵌 os/systemos 的 verified-root 策略后约 180MB）和 Data seed（最多 256MiB）。
+BOOT_SIZE_MIB=512
+STAGE_BYTES=$(du -sk "$STAGE_DIR" | awk '{print $1}')
+if [ "$STAGE_BYTES" -gt $((BOOT_SIZE_MIB * 1024 * 95 / 100)) ]; then
+    echo "❌ 错误: payload 占 ${STAGE_BYTES} KiB，超过 ${BOOT_SIZE_MIB} MiB ESP 的 95%，请提高 BOOT_SIZE_MIB"
+    exit 1
+fi
 truncate -s "${BOOT_SIZE_MIB}M" "$OUTPUT_BOOT_IMG"
 mformat -i "$OUTPUT_BOOT_IMG" -F -v "UNIXNUESP" -C -T $((BOOT_SIZE_MIB * 2048)) ::
 mcopy -s -i "$OUTPUT_BOOT_IMG" "$STAGE_DIR"/* ::/
