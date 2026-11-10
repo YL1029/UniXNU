@@ -186,9 +186,10 @@ echo "==> 正在生成 DroidVM 设备树 (kernel.macho.adt)..."
 # crosvm/Gunyah 在 GICD 之下为每个 vCPU 放一个 0x20000 帧，ArmCpu 在该区域内按 GICR_TYPER 亲和性找自己的帧；
 # 而 /cpus 仍只描述引导 CPU（--smp 1），两者的数量本来就可以不同。
 GIC_CPUS="${GIC_CPUS:-4}"
-# 根卷 = os.img 里的 OS 卷（verified-root 策略里 pin 的 UUID）。没有 /chosen/root-matching 时
-# IOKitBSDInit 只会打印 "Still waiting for root device" 直到超时 panic。
-ROOT_VOLUME_UUID="${ROOT_VOLUME_UUID:-04769D26-2CA0-4825-B443-E2E5F88300F2}"
+# 根卷 = os.img 里的 OS 卷。当前 os.img 由 macOS 14.6.1 (23G93) 恢复镜像的 OS.dmg 展开而来，
+# 其 System 卷 UUID 为 63E8D68F-...（macOS 线 run-macos-vm.py 里 pin 的 OS_UUID）。
+# 没有 /chosen/root-matching 时 IOKitBSDInit 只会打印 "Still waiting for root device" 直到超时 panic。
+ROOT_VOLUME_UUID="${ROOT_VOLUME_UUID:-63E8D68F-1310-4609-8FD8-CA9501AAFAD4}"
 python3 "$ROOT/device/scripts/make-virt-adt.py" \
     --machine crosvm \
     --timebase 19200000 \
