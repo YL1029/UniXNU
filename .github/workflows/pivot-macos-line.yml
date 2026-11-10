@@ -58,29 +58,29 @@ jobs:
           python3 ci/scripts/apply-overlay-board.py device droidvm_defconfig
           git -C UniXNU rev-parse HEAD; git -C device rev-parse HEAD; git -C ci rev-parse HEAD
 
-      - name: Drop the reference-candidate audit builder
-        # audit-storage-interface-static.py reads build/reference-candidate/kernel.{macho,json},
-        # which upstream keeps as an encrypted release asset (ARTIFACT_KEY). It is a static audit,
-        # not part of the boot path, so build the kernel without it.
+      - name: Reference build without the overlay archive
+        # The reference candidate (build/reference-candidate/kernel.{macho,json}) is what the
+        # storage ABI audit reads. Its build links the board defconfig, whose
+        # CONFIG_XNU_EXTRA_LD_ARCHIVES names the overlay's libVirtioPciDrivers.a; that archive is
+        # not in REFERENCE_ARCHIVES, so drop the link item for the reference build only.
         run: |
+          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          path = Path('device/board.toml')
+          path = Path('device/scripts/build-droidvm-all.py')
           text = path.read_text()
-          removed = text.count('"audit-storage-interface-static.py",')
-          text = text.replace('  "audit-storage-interface-static.py",\n', '')
-          path.write_text(text)
-          print('removed audit builders:', removed)
+          marker = "        defconfig = re.sub(r'^CONFIG_XNU_(NATIVE_VIRTIO_BLOCK|VERIFIED_ROOT)_ARCHIVE=.*\\n', '', defconfig, flags=re.M)"
+          assert text.count(marker) == 1, text.count(marker)
+          extra = "\n        defconfig = re.sub(r'^CONFIG_XNU_EXTRA_LD_ARCHIVES=.*\\n', '', defconfig, flags=re.M)"
+          path.write_text(text.replace(marker, marker + extra))
+          print('reference build patched')
           PY
 
       - name: Build everything
         working-directory: device
         run: |
           set -euo pipefail
-          # The reference candidate only feeds the device's audit steps and needs the encrypted
-          # reference kernel asset upstream keeps; skip just that step and run the rest.
-          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --to data-base
-          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU --from kernel
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU
           ls -l ../UniXNU/out/droidvm/release
 
       - name: Upload logs
@@ -91,6 +91,7 @@ jobs:
           path: |
             UniXNU/out/droidvm/logs
             UniXNU/out-reference/droidvm/logs
+            device/out/droidvm/build-all
           if-no-files-found: ignore
           retention-days: 7
 
