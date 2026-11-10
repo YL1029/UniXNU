@@ -26,6 +26,10 @@ jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 360
+    env:
+      # prepare-xnu-source.py authenticates its apple-oss-distributions/xnu contents calls with
+      # this; without it the runner's anonymous 60/hour quota runs out during the kernel build.
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/setup-python@v5
         with:
