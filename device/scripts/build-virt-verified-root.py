@@ -87,8 +87,11 @@ for manifest in (os_manifest, systemos_manifest):
 indices, lengths = meta['os']['sample_indices'], meta['os']['sample_lengths']
 require(len(indices) == 4 and len(lengths) == 4 and samples.stat().st_size == 4 * 4096, 'Four OS sample blocks')
 assembly = OUT / 'inputs.S'
+# __DATA (placed after __TEXT_EXEC), not __DATA_CONST: the real os+systemos manifests
+# are ~126 MB, and growing __DATA_CONST would push __TEXT_EXEC up until the native
+# calls into the prelinked Apple kexts exceed the ARM64 +/-128 MB branch range.
 assembly.write_text(f'''// Generated owner policy inputs (UniXNU-droidvm scripts/build-virt-verified-root.py).
-.section __DATA_CONST,__const
+.section __DATA,__data
 .balign 8
 .globl _verified_root_manifest, _verified_root_manifest_bytes
 _verified_root_manifest:
