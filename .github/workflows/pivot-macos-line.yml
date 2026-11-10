@@ -24,7 +24,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 360
     steps:
       - uses: actions/setup-python@v5
@@ -72,7 +72,7 @@ jobs:
           name: droidvm-logs
           path: |
             UniXNU/out/droidvm/logs
-            device/out/droidvm/build-all
+            UniXNU/out-reference/droidvm/logs
           if-no-files-found: ignore
           retention-days: 7
 
