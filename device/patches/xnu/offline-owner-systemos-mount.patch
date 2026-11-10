@@ -234,14 +234,14 @@
 +	    .flags = 0, .data = scratch + 0x200};
 +	int32_t result = 0;
 +	if ((error = copyout("apfs", request.type, 5)) ||
-+	    (error = copyout("/private/var", request.path, 13)) ||
++	    (error = copyout("/System/Volumes/Data", request.path, 21)) ||
 +	    (error = copyout(device_path, spec, strlen(device_path) + 1)) ||
 +	    (error = copyout(payload, request.data, sizeof(payload)))) goto done;
 +	native_owner_data_stage = 2;
 +	error = mount(p, &request, &result);
 +	if (error) goto done;
 +	native_owner_data_stage = 3;
-+	error = vnode_lookup("/private/var", 0, &data_root, vfs_context_current());
++	error = vnode_lookup("/System/Volumes/Data", 0, &data_root, vfs_context_current());
 +	if (error) goto done;
 +	mount_t data_mount = vnode_mount(data_root);
 +	vnode_t device_node = vfs_devvp(data_mount);
