@@ -376,6 +376,28 @@ void NativeRamBlock::free()
   IOBlockStorageDevice::free();
 }
 
+static void dumpMedia()
+{
+  OSDictionary *matching = IOService::serviceMatching("IOMedia");
+  if (!matching) return;
+  OSIterator *iterator = IOService::getMatchingServices(matching);
+  matching->release();
+  if (!iterator) { IOLog("NativeRamBlock: no IOMedia services published\n"); return; }
+  unsigned index = 0;
+  while (OSObject *object = iterator->getNextObject()) {
+    IOService *media = OSDynamicCast(IOService, object);
+    if (!media) continue;
+    ++index;
+    OSString *uuid = OSDynamicCast(OSString, media->getProperty("UUID"));
+    OSString *name = OSDynamicCast(OSString, media->getProperty(kIOBSDNameKey));
+    IOLog("NativeRamBlock: media %u %s uuid %s\n", index,
+        name ? name->getCStringNoCopy() : "(none)",
+        uuid ? uuid->getCStringNoCopy() : "(none)");
+  }
+  iterator->release();
+  IOLog("NativeRamBlock: %u IOMedia services published\n", index);
+}
+
 static int selectVolumeSeed(const char *uuid, dev_t *device, char *path, size_t size,
     uint64_t *seedBase,uint64_t *seedBytes,uint8_t seedDigest[32])
 {
@@ -393,7 +415,11 @@ static int selectVolumeSeed(const char *uuid, dev_t *device, char *path, size_t 
   wanted->release(); properties->release();
   OSIterator *iterator = ready ? IOService::getMatchingServices(matching) : nullptr;
   matching->release();
-  if (!iterator) return 0;
+  if (!iterator) {
+    IOLog("NativeRamBlock: no IOMedia service matched the UUID query for %s\n", uuid);
+    dumpMedia();
+    return 0;
+  }
   bool selected = false;
   unsigned matches = 0;
   dev_t candidate = NODEV;
@@ -426,6 +452,7 @@ static int selectVolumeSeed(const char *uuid, dev_t *device, char *path, size_t 
   if (!selected || matches != 1) {
     IOLog("NativeRamBlock: seed lookup %s matched %u media (selected %d)\n",
         uuid, static_cast<unsigned>(matches), selected ? 1 : 0);
+    dumpMedia();
     return 0;
   }
   *device = candidate;
