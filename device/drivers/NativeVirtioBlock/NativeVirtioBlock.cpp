@@ -312,7 +312,11 @@ bool NativeVirtioBlock::authenticatesVolume(const char *uuid, uint8_t *manifestD
     if (manifestDigest) memset(manifestDigest, 0x42, 48);
     return true;
   }
-  if (!verifiedStorage || !verified.hashes) return false;
+  if (!verifiedStorage || !verified.hashes) {
+    IOLog("NativeVirtioBlock: auth %s has no verified storage (storage %d hashes %d)\n",
+          uuid, verifiedStorage != nullptr, verified.hashes != nullptr);
+    return false;
+  }
   static const char hex[] = "0123456789ABCDEF";
   char expected[37];
   unsigned at = 0;
@@ -322,7 +326,10 @@ bool NativeVirtioBlock::authenticatesVolume(const char *uuid, uint8_t *manifestD
     expected[at++] = hex[verified.volume_uuid[i] & 15];
   }
   expected[at] = 0;
-  if (strcmp(uuid, expected)) return false;
+  if (strcmp(uuid, expected)) {
+    IOLog("NativeVirtioBlock: auth uuid %s != policy uuid %s\n", uuid, expected);
+    return false;
+  }
   if (manifestDigest) {
     // Hash only the authenticated envelope, excluding allocation padding and key.
     const uint64_t bytes = VR_HEADER_BYTES + VR_SIGNATURE_BYTES + verified.block_count * 32;
@@ -395,6 +402,9 @@ static int verifiedVolumeQuery(dev_t device, const char *expectedUUID, uint8_t *
   native_verified_block_root_media_matches = matches;
   native_verified_block_root_provider_depth = depth;
   if (!authenticated || matches != 1) {
+    IOLog("NativeVirtioBlock: volume query dev %u expected %s matches %u depth %u auth %u\n",
+          static_cast<unsigned>(device), expectedUUID ? expectedUUID : "(any)",
+          matches, depth, static_cast<unsigned>(authenticated ? 1 : 0));
     if (manifestDigest) bzero(manifestDigest, SHA384_DIGEST_LENGTH);
     return 0;
   }
@@ -452,7 +462,10 @@ extern "C" int native_verified_block_volume_device(const char *uuid, dev_t *devi
     authenticated = true;
   }
   iterator->release();
-  if (!authenticated || matches != 1) return 0;
+  if (!authenticated || matches != 1) {
+    IOLog("NativeVirtioBlock: volume device %s matches %u auth %u\n", uuid, matches, static_cast<unsigned>(authenticated ? 1 : 0));
+    return 0;
+  }
   *device = candidate;
   strlcpy(path, candidatePath, size);
   return 1;

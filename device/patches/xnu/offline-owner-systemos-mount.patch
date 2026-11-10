@@ -280,7 +280,7 @@
 +	user_addr_t init_envp = USER_ADDR_NULL;
 +#if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
 +	int cache_error = native_owner_cache_prepare(p, (user_addr_t)scratch_addr, &init_envp);
-+	if (cache_error) panic("owner cache failed %d: ro=%d eq=%d auth=%d union=%d flags=%llx sel=%d act=%d", cache_error, native_owner_cache_readonly, native_owner_cache_mounted_device == native_owner_cache_selected_device, native_verified_block_root_authorized(native_owner_cache_mounted_device), native_owner_cache_native_union, (unsigned long long)native_owner_cache_actual_mount_flags, (int)native_owner_cache_selected_device, (int)native_owner_cache_mounted_device);
++	if (cache_error) panic("offline owner SystemOS mount failed: %d", cache_error);
 +#endif
 +#if defined(XNU_OWNER_DATA_MOUNT) && XNU_OWNER_DATA_MOUNT
 +	int data_error = native_owner_data_prepare(p, (user_addr_t)scratch_addr);
