@@ -314,7 +314,7 @@ bool NativeVirtioBlock::authenticatesVolume(const char *uuid, uint8_t *manifestD
   }
   if (!verifiedStorage || !verified.hashes) {
     IOLog("NativeVirtioBlock: auth %s has no verified storage (storage %d hashes %d)\n",
-          uuid, verifiedStorage != nullptr, verified.hashes != nullptr);
+          uuid, verifiedStorage != 0, verified.hashes != nullptr);
     return false;
   }
   static const char hex[] = "0123456789ABCDEF";
