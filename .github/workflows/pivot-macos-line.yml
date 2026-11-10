@@ -58,6 +58,21 @@ jobs:
           python3 ci/scripts/apply-overlay-board.py device droidvm_defconfig
           git -C UniXNU rev-parse HEAD; git -C device rev-parse HEAD; git -C ci rev-parse HEAD
 
+      - name: Drop the reference-candidate audit builder
+        # audit-storage-interface-static.py reads build/reference-candidate/kernel.{macho,json},
+        # which upstream keeps as an encrypted release asset (ARTIFACT_KEY). It is a static audit,
+        # not part of the boot path, so build the kernel without it.
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('device/board.toml')
+          text = path.read_text()
+          removed = text.count('"audit-storage-interface-static.py",')
+          text = text.replace('  "audit-storage-interface-static.py",\n', '')
+          path.write_text(text)
+          print('removed audit builders:', removed)
+          PY
+
       - name: Build everything
         working-directory: device
         run: |
