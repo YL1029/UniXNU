@@ -470,5 +470,14 @@ extern "C" int native_ram_block_volume_seed(const char *uuid,dev_t *device,char 
     uint64_t *base,uint64_t *bytes,uint8_t digest[32]) {
   if(!base || !bytes || !digest)return 0;
   *base=0;*bytes=0;memset(digest,0,32);
-  return selectVolumeSeed(uuid,device,path,size,base,bytes,digest);
+  IOLog("NativeRamBlock: seed query %s\n", uuid ? uuid : "(null)");
+  for (unsigned attempt = 0; attempt < 50; ++attempt) {
+    if (selectVolumeSeed(uuid,device,path,size,base,bytes,digest)) {
+      if (attempt) IOLog("NativeRamBlock: seed appeared after %u wait(s)\n", attempt);
+      return 1;
+    }
+    IOSleep(20);
+  }
+  IOLog("NativeRamBlock: seed %s never appeared\n", uuid ? uuid : "(null)");
+  return 0;
 }
