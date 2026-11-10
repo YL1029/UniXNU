@@ -1,0 +1,88 @@
+name: macOS line (upstream droidvm)
+
+# Pivot build: assemble the Droid-VM macOS line exactly as Droid-VM/macOS-DroidVM does,
+# but upload the boot disk unencrypted so it can be deployed to the test phone.
+#
+#   UniXNU wip/droidvm + UniXNU-droidvm wip/hackintosh + this repository's overlay
+#   -> scripts/build-droidvm-all.py -> out/droidvm/release/droidvm-disk.img
+#
+# The device repository's builder extracts the Data seed from the OS volume's own
+# /private/var, bakes its APFS UUID into the kernel configuration and packages the
+# boot disk (UniXNU.efi, DarwinBoot.efi, kernel, ADT, trust, Data seed).
+on:
+  workflow_dispatch:
+    inputs:
+      unixnu_ref:
+        description: Droid-VM/UniXNU branch or commit
+        default: wip/droidvm
+      device_ref:
+        description: Droid-VM/UniXNU-droidvm branch or commit
+        default: wip/hackintosh
+      overlay_ref:
+        description: Droid-VM/macOS-DroidVM branch or commit (overlay)
+        default: macOS
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 360
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          brew install llvm lld cmake ninja unifdef mtools dtc
+          python3 -m pip install --upgrade pip
+
+      - name: Sources and overlay
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/Droid-VM/UniXNU.git UniXNU
+          git -C UniXNU checkout "${{ inputs.unixnu_ref }}"
+          git -C UniXNU submodule update --init --recursive --filter=blob:none
+          git clone --filter=blob:none https://github.com/Droid-VM/UniXNU-droidvm.git device
+          git -C device checkout "${{ inputs.device_ref }}"
+          git -C device submodule update --init --recursive --filter=blob:none
+          git clone --filter=blob:none https://github.com/Droid-VM/macOS-DroidVM.git ci
+          git -C ci checkout "${{ inputs.overlay_ref }}"
+          # The overlay's device patches, drivers and archive builders replace the device ones.
+          mkdir -p device/patches/xnu device/drivers
+          cp ci/overlay/droidvm/patches/xnu/*.patch device/patches/xnu/
+          cp -R ci/overlay/droidvm/drivers/. device/drivers/
+          cp -R ci/overlay/droidvm/scripts/. device/scripts/
+          cp -n UniXNU/patches/xnu/*.patch device/patches/xnu/ || true
+          python3 ci/scripts/apply-overlay-board.py device droidvm_defconfig
+          git -C UniXNU rev-parse HEAD; git -C device rev-parse HEAD; git -C ci rev-parse HEAD
+
+      - name: Build everything
+        working-directory: device
+        run: |
+          set -euo pipefail
+          python3 scripts/build-droidvm-all.py --unixnu ../UniXNU
+          ls -l ../UniXNU/out/droidvm/release
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidvm-logs
+          path: |
+            UniXNU/out/droidvm/logs
+            device/out/droidvm/build-all
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload boot disk
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidvm-disk
+          path: |
+            UniXNU/out/droidvm/release/droidvm-disk.img
+            UniXNU/out/droidvm/release/release.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
